@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle } from '../services/templateService';
 import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface AdminPageProps {
@@ -27,6 +27,20 @@ export function AdminPage({ language }: AdminPageProps) {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+        const scrollAmount = 200;
+        const currentScroll = tabsContainerRef.current.scrollLeft;
+        const newScroll = direction === 'right' ? currentScroll + scrollAmount : currentScroll - scrollAmount;
+        
+        tabsContainerRef.current.scrollTo({
+            left: newScroll,
+            behavior: 'smooth'
+        });
+    }
+  };
 
   // --- Editing State ---
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -396,7 +410,7 @@ export function AdminPage({ language }: AdminPageProps) {
   const fontClass = language === Language.SC ? 'font-sc' : language === Language.TC ? 'font-tc' : 'font-sans';
 
   return (
-    <div className={`flex-1 p-4 md:p-8 overflow-y-auto ${fontClass} ${isChatOpen ? 'mr-80 md:mr-96' : ''}`}>
+    <div className={`flex-1 px-4 md:px-8 pb-4 md:pb-8 pt-2 md:pt-4 overflow-y-auto ${fontClass} ${isChatOpen ? 'mr-80 md:mr-96' : ''}`}>
       <div className="max-w-7xl mx-auto">
         
         {/* State: Template List */}
@@ -563,7 +577,7 @@ export function AdminPage({ language }: AdminPageProps) {
         {generatedSurvey && (
             <div className="animate-fade-in space-y-6 pb-20">
                 {/* Control Bar */}
-                <div className="sticky top-16 z-40 bg-white shadow-md border-b border-gray-200 mb-6 -mx-4 md:-mx-8 px-4 md:px-8 py-3">
+                <div className="sticky top-0 z-40 bg-white shadow-md border-b border-gray-200 mb-6 -mx-4 md:-mx-8 px-4 md:px-8 py-3">
                   <div className="max-w-7xl mx-auto flex flex-wrap gap-3 justify-between items-center">
                     <button 
                         onClick={() => setGeneratedSurvey(null)}
@@ -621,29 +635,54 @@ export function AdminPage({ language }: AdminPageProps) {
                 </div>
 
                 {/* Tabs Navigation */}
-                <div className="mt-8 mb-6 flex overflow-x-auto pb-2 gap-2 md:justify-center no-scrollbar">
-                    {generatedSurvey.sections.map((section, idx) => {
-                        const isActive = idx === currentStep;
-                        const isCompleted = idx < currentStep;
-                        return (
-                            <button
-                                key={section.id}
-                                type="button"
-                                onClick={() => setCurrentStep(idx)}
-                                className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
-                                  ${isActive 
-                                    ? 'bg-blue-600 text-white shadow-md' 
-                                    : isCompleted 
-                                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
-                                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                                  }`}
-                            >
-                                {isCompleted && <Check size={14} className="mr-1.5" />}
-                                <span className="mr-2">{idx + 1}.</span>
-                                {getText(section.title)}
-                            </button>
-                        );
-                    })}
+                <div className="mt-8 mb-6 flex items-center justify-center gap-2">
+                    <button 
+                        onClick={() => scrollTabs('left')}
+                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
+                    >
+                        <ChevronLeft size={20} />
+                    </button>
+
+                    <div 
+                        ref={tabsContainerRef}
+                        className="flex overflow-x-auto pb-2 gap-2 no-scrollbar scroll-smooth w-full md:w-auto px-1"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                        <style>{`
+                            .no-scrollbar::-webkit-scrollbar {
+                                display: none;
+                            }
+                        `}</style>
+                        {generatedSurvey.sections.map((section, idx) => {
+                            const isActive = idx === currentStep;
+                            const isCompleted = idx < currentStep;
+                            return (
+                                <button
+                                    key={section.id}
+                                    type="button"
+                                    onClick={() => setCurrentStep(idx)}
+                                    className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
+                                      ${isActive 
+                                        ? 'bg-blue-600 text-white shadow-md' 
+                                        : isCompleted 
+                                          ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
+                                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                      }`}
+                                >
+                                    {isCompleted && <Check size={14} className="mr-1.5" />}
+                                    <span className="mr-2">{idx + 1}.</span>
+                                    {getText(section.title)}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <button 
+                        onClick={() => scrollTabs('right')}
+                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
+                    >
+                        <ChevronRight size={20} />
+                    </button>
                 </div>
 
                 {generatedSurvey.sections.map((section, sIdx) => (
