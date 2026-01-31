@@ -50,6 +50,21 @@ export function SurveyForm({
     }
   };
 
+  const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollTabs = (direction: 'left' | 'right') => {
+    if (tabsContainerRef.current) {
+        const scrollAmount = 200;
+        const currentScroll = tabsContainerRef.current.scrollLeft;
+        const newScroll = direction === 'right' ? currentScroll + scrollAmount : currentScroll - scrollAmount;
+        
+        tabsContainerRef.current.scrollTo({
+            left: newScroll,
+            behavior: 'smooth'
+        });
+    }
+  };
+
   const currentSection = survey.sections[currentStep];
 
   if (!currentSection) {
@@ -85,29 +100,56 @@ export function SurveyForm({
         </div>
 
         {/* Tabs / Stepper */}
-        <div className="mt-8 flex overflow-x-auto pb-2 gap-2 md:justify-center no-scrollbar">
-          {survey.sections.map((section, idx) => {
-            const isActive = idx === currentStep;
-            const isCompleted = idx < currentStep;
-            return (
-              <button
-                key={section.id}
+        <div className="mt-8 flex items-center justify-center gap-2">
+            <button 
                 type="button"
-                onClick={() => setCurrentStep(idx)}
-                className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
-                  ${isActive 
-                    ? 'bg-blue-600 text-white shadow-md' 
-                    : isCompleted 
-                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
-                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                  }`}
-              >
-                {isCompleted && <Check size={14} className="mr-1.5" />}
-                <span className="mr-2">{idx + 1}.</span>
-                {getText(section.title)}
-              </button>
-            );
-          })}
+                onClick={() => scrollTabs('left')}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
+            >
+                <ChevronLeft size={20} />
+            </button>
+
+            <div 
+                ref={tabsContainerRef}
+                className="flex overflow-x-auto pb-2 gap-2 no-scrollbar scroll-smooth w-full md:w-auto px-1"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+                <style>{`
+                    .no-scrollbar::-webkit-scrollbar {
+                        display: none;
+                    }
+                `}</style>
+                {survey.sections.map((section, idx) => {
+                    const isActive = idx === currentStep;
+                    const isCompleted = idx < currentStep;
+                    return (
+                    <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => setCurrentStep(idx)}
+                        className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
+                        ${isActive 
+                            ? 'bg-blue-600 text-white shadow-md' 
+                            : isCompleted 
+                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
+                            : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                        }`}
+                    >
+                        {isCompleted && <Check size={14} className="mr-1.5" />}
+                        <span className="mr-2">{idx + 1}.</span>
+                        {getText(section.title)}
+                    </button>
+                    );
+                })}
+            </div>
+
+            <button 
+                type="button"
+                onClick={() => scrollTabs('right')}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
+            >
+                <ChevronRight size={20} />
+            </button>
         </div>
       </div>
 
