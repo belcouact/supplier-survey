@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, setActiveTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
-import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult } from '../types';
+import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult, SurveyTemplate } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
@@ -26,7 +26,7 @@ export function AdminPage({ language }: AdminPageProps) {
   const [generatedSurvey, setGeneratedSurvey] = useState<SurveySchema | null>(null);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
 
@@ -245,7 +245,7 @@ export function AdminPage({ language }: AdminPageProps) {
     }
   };
 
-  const handleSelectActiveTemplate = async (template: any) => {
+  const handleSelectActiveTemplate = async (template: SurveyTemplate) => {
     try {
         await setActiveTemplate(template.id);
         setTemplates(templates.map(t => ({
@@ -271,7 +271,7 @@ export function AdminPage({ language }: AdminPageProps) {
     }
   };
 
-  const handleDuplicateTemplate = async (e: React.MouseEvent, template: any) => {
+  const handleDuplicateTemplate = async (e: React.MouseEvent, template: SurveyTemplate) => {
     e.stopPropagation();
     try {
         const newTemplate = await duplicateTemplate(template);

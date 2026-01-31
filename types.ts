@@ -67,3 +67,12 @@ export interface UserProfile {
   id: string;
   email: string;
 }
+
+export interface SurveyTemplate {
+  id: string;
+  title: string;
+  description: string;
+  schema: SurveySchema;
+  created_at: string;
+  is_active: boolean;
+}
