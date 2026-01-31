@@ -1,0 +1,5 @@
+{
+  "name": "AI Supplier Survey Generator",
+  "description": "An AI-powered tool that generates custom, multilingual supplier surveys based on business context using Google Gemini.",
+  "requestFramePermissions": []
+}
