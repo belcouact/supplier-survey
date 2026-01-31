@@ -1,6 +1,24 @@
 import { SurveySchema, ChatMessage } from '../types';
 
-const API_URL = 'https://multi-model-worker.study-llm.me/chat';
+const BASE_URL = 'https://multi-model-worker.study-llm.me';
+const API_URL = `${BASE_URL}/chat`;
+
+/**
+ * Fetches the list of available AI models from the worker.
+ */
+export async function getAvailableModels(): Promise<string[]> {
+  try {
+    const response = await fetch(`${BASE_URL}/models`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status}`);
+    }
+    const data = await response.json();
+    return data.models || ['deepseek', 'gemini']; // Fallback
+  } catch (error) {
+    console.error('Error fetching models:', error);
+    return ['deepseek', 'gemini']; // Fallback
+  }
+}
 
 const GENERATION_SYSTEM_INSTRUCTION = `You are a world-class Supply Chain Auditor and Survey Designer. 
 Your goal is to create a professional, detailed supplier vetting survey based on the user's specific business context.
@@ -67,16 +85,16 @@ JSON Schema:
 /**
  * Generates a new survey based on a single user context string.
  */
-export async function generateSurvey(userContext: string): Promise<SurveySchema> {
+export async function generateSurvey(userContext: string, model: string = 'deepseek'): Promise<SurveySchema> {
   const prompt = `Context: ${userContext}. Create a comprehensive survey for this supplier. Return ONLY the JSON.`;
   const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
-  return callAI<SurveySchema>(messages, GENERATION_SYSTEM_INSTRUCTION);
+  return callAI<SurveySchema>(messages, GENERATION_SYSTEM_INSTRUCTION, model);
 }
 
 /**
  * Refines an existing survey based on user instruction and current state.
  */
-export async function refineSurvey(currentSchema: SurveySchema, instruction: string, history: ChatMessage[] = []): Promise<{ updatedSurvey: SurveySchema | null, responseMessage: string }> {
+export async function refineSurvey(currentSchema: SurveySchema, instruction: string, history: ChatMessage[] = [], model: string = 'deepseek'): Promise<{ updatedSurvey: SurveySchema | null, responseMessage: string }> {
   // Convert history to a text summary to provide context without confusing the strict JSON system prompt
   const historyContext = history.length > 0 
     ? `Conversation History:\n${history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
@@ -92,13 +110,13 @@ If it is just a question or comment, return { "updatedSurvey": null, "responseMe
 Return ONLY the JSON object.`;
   
   const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
-  return callAI<{ updatedSurvey: SurveySchema | null, responseMessage: string }>(messages, REFINEMENT_SYSTEM_INSTRUCTION);
+  return callAI<{ updatedSurvey: SurveySchema | null, responseMessage: string }>(messages, REFINEMENT_SYSTEM_INSTRUCTION, model);
 }
 
 /**
  * Common AI call handler
  */
-async function callAI<T>(messages: ChatMessage[], systemInstruction: string): Promise<T> {
+async function callAI<T>(messages: ChatMessage[], systemInstruction: string, model: string = 'deepseek'): Promise<T> {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -106,7 +124,7 @@ async function callAI<T>(messages: ChatMessage[], systemInstruction: string): Pr
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'deepseek', 
+        model: model, 
         messages: [
           { role: 'system', content: systemInstruction },
           ...messages

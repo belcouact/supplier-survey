@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { generateSurvey, refineSurvey } from '../services/aiService';
+import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle } from '../services/templateService';
 import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy } from 'lucide-react';
@@ -40,10 +40,30 @@ export function AdminPage({ language }: AdminPageProps) {
   const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null);
   const [renameTitle, setRenameTitle] = useState('');
 
-  // --- Fetch Templates ---
+  // --- AI Model State ---
+  const [selectedModel, setSelectedModel] = useState<string>('deepseek');
+  const [availableModels, setAvailableModels] = useState<string[]>(['deepseek', 'gemini']);
+
+  // --- Fetch Templates & Models ---
   useEffect(() => {
     loadTemplates();
+    loadModels();
   }, []);
+
+  const loadModels = async () => {
+    try {
+        const models = await getAvailableModels();
+        if (models && models.length > 0) {
+            setAvailableModels(models);
+            // Ensure selected model is in the list, otherwise select the first one
+            if (!models.includes(selectedModel)) {
+                setSelectedModel(models[0]);
+            }
+        }
+    } catch (err) {
+        console.error('Failed to load models', err);
+    }
+  };
 
   useEffect(() => {
     if (isChatOpen && chatEndRef.current) {
@@ -96,7 +116,7 @@ export function AdminPage({ language }: AdminPageProps) {
     setGeneratedSurvey(null);
 
     try {
-      const surveyData = await generateSurvey(userContext);
+      const surveyData = await generateSurvey(userContext, selectedModel);
       setGeneratedSurvey(surveyData);
       
       setChatHistory([
@@ -125,7 +145,7 @@ export function AdminPage({ language }: AdminPageProps) {
     setChatHistory(newHistory);
 
     try {
-        const result = await refineSurvey(generatedSurvey, userMsg, chatHistory);
+        const result = await refineSurvey(generatedSurvey, userMsg, chatHistory, selectedModel);
         
         if (result.updatedSurvey) {
             pushToHistory();
@@ -483,7 +503,25 @@ export function AdminPage({ language }: AdminPageProps) {
                     
                     <div className="text-center mb-8">
                         <h2 className="text-3xl font-bold text-slate-900">AI Survey Generator</h2>
-                        <p className="text-gray-600 mt-2">Describe your needs and let AI craft a multilingual survey.</p>
+                        <p className="text-gray-600 mt-2">Describe your needs and let AI craft a detailed survey. This may take a few minutes. </p>
+                    </div>
+
+                    <div className="flex justify-center mb-6">
+                        <div className="bg-gray-100 p-1 rounded-lg flex gap-1 flex-wrap justify-center">
+                            {availableModels.map((model) => (
+                                <button
+                                    key={model}
+                                    onClick={() => setSelectedModel(model)}
+                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                                        selectedModel === model 
+                                        ? 'bg-white text-blue-600 shadow-sm' 
+                                        : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {model === 'gpt-4o' ? 'GPT-4o' : model.charAt(0).toUpperCase() + model.slice(1)}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <textarea
