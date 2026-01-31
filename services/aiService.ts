@@ -25,12 +25,18 @@ Your goal is to create a professional, detailed supplier vetting survey based on
 
 Rules:
 1. Detect the language of the user's input. The survey content MUST be generated in that SAME language.
-2. Structure the survey into logical sections (e.g., General Info, Production Capacity, Quality Control, Sustainability).
-3. Use a mix of question types: 'short_text', 'long_text', 'single_choice' (radio), 'multiple_choice' (checkbox), 'number'.
-4. Ensure questions are specific to the industry mentioned in the context.
-5. The 'type' field in the JSON MUST be one of the exact strings listed in the prompt instructions.
-6. Populate the 'en', 'sc', and 'tc' fields with the SAME content (in the detected language). Do NOT translate.
-7. Return ONLY valid JSON matching the specified schema. Do not include any other text.
+2. Structure the survey into logical sections.
+3. CRITICAL: The FIRST section MUST be "Basic Information" (or equivalent in target language) and MUST include questions for:
+   - Company Name
+   - Department / Division
+   - Contact Person Name
+   - Contact Email
+   - Factory Address
+4. Use a mix of question types: 'short_text', 'long_text', 'single_choice' (radio), 'multiple_choice' (checkbox), 'number'.
+5. Ensure questions are specific to the industry mentioned in the context.
+6. The 'type' field in the JSON MUST be one of the exact strings listed in the prompt instructions.
+7. Populate the 'en', 'sc', and 'tc' fields with the SAME content (in the detected language). Do NOT translate.
+8. Return ONLY valid JSON matching the specified schema. Do not include any other text.
 
 JSON Schema:
 {

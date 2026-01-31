@@ -245,13 +245,17 @@ export function AdminPage({ language }: AdminPageProps) {
     }
   };
 
-  const handleSelectActiveTemplate = (template: any) => {
-    // In a real app, this would save to a 'settings' table.
-    // For this demo, we'll assume the user wants to set this as the "Landing Page" template.
-    // We'll store it in localStorage for simplicity to persist across refreshes.
-    localStorage.setItem('active_template_id', template.id);
-    localStorage.setItem('active_template_schema', JSON.stringify(template.schema));
-    alert(`"${template.title}" has been set as the active survey for the landing page.`);
+  const handleSelectActiveTemplate = async (template: any) => {
+    try {
+        await setActiveTemplate(template.id);
+        setTemplates(templates.map(t => ({
+            ...t,
+            is_active: t.id === template.id
+        })));
+    } catch (err) {
+        alert('Failed to set active template');
+        console.error(err);
+    }
   };
 
   const handleDeleteTemplate = async (e: React.MouseEvent, templateId: string) => {
@@ -494,7 +498,7 @@ export function AdminPage({ language }: AdminPageProps) {
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
-                    Create & Manage
+                    Create
                 </button>
                 <button
                     onClick={() => setActiveTab('analytics')}
@@ -523,7 +527,12 @@ export function AdminPage({ language }: AdminPageProps) {
                      </div>
 
                     {templates.map((template) => (
-                  <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
+                  <div key={template.id} className={`bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow group relative ${template.is_active ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'}`}>
+                    {template.is_active && (
+                        <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs px-3 py-1 rounded-br-lg rounded-tl-xl font-bold uppercase tracking-wider z-20">
+                            Active
+                        </div>
+                    )}
                     <div className="absolute top-4 right-4 flex gap-1 z-10">
                         <button 
                             onClick={(e) => handleDuplicateTemplate(e, template)}
@@ -557,10 +566,15 @@ export function AdminPage({ language }: AdminPageProps) {
                         </button>
                         <button 
                             onClick={() => handleSelectActiveTemplate(template)}
-                            className="flex-1 px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium flex items-center justify-center gap-1"
+                            disabled={template.is_active}
+                            className={`flex-1 px-3 py-2 rounded text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
+                                template.is_active 
+                                ? 'bg-green-100 text-green-700 cursor-default' 
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            }`}
                         >
-                            <Check size={14} />
-                            Select as Active
+                            {template.is_active ? <Check size={14} /> : null}
+                            {template.is_active ? 'Active' : 'Select as Active'}
                         </button>
                     </div>
                   </div>
@@ -679,12 +693,18 @@ export function AdminPage({ language }: AdminPageProps) {
                         </div>
                     </div>
 
-                    <textarea
-                        value={userContext}
-                        onChange={(e) => setUserContext(e.target.value)}
-                        placeholder="e.g. I need to audit a fabric mill in Bangladesh producing organic cotton jersey. Focus on social compliance and water treatment capabilities."
-                        className="w-full p-4 text-gray-700 text-lg rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[150px] mb-6"
-                    />
+                    <div className="relative mb-6">
+                        <textarea
+                            value={userContext}
+                            onChange={(e) => setUserContext(e.target.value)}
+                            maxLength={30000}
+                            placeholder="e.g. I need to audit a fabric mill in Bangladesh producing organic cotton jersey. Focus on social compliance and water treatment capabilities."
+                            className="w-full p-4 pb-8 text-gray-700 text-lg rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[200px]"
+                        />
+                        <div className="absolute bottom-3 right-4 text-xs text-gray-400 font-medium bg-white px-2 rounded-md border border-gray-100 shadow-sm">
+                            {userContext.length} / 30000 characters (~{Math.round(userContext.split(/\s+/).filter(w => w.length > 0).length)} words)
+                        </div>
+                    </div>
                     
                     {error && (
                         <div className="mb-6 text-red-500 bg-red-50 px-4 py-2 rounded-lg border border-red-100 text-sm">
