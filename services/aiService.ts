@@ -42,14 +42,25 @@ JSON Schema:
 `;
 
 const REFINEMENT_SYSTEM_INSTRUCTION = `You are an expert Survey Editor.
-Your goal is to MODIFY an existing survey JSON based on the user's instructions.
+Your goal is to MODIFY an existing survey JSON based on the user's instructions OR answer questions about the survey.
 
 Rules:
 1. You will receive the current "Survey JSON" and a "User Instruction".
-2. Apply the requested changes to the JSON structure.
-3. Maintain the integrity of the existing structure (IDs, languages, etc.) unless explicitly asked to change them.
-4. If adding content, ensure it is multilingual (en, sc, tc).
-5. Return ONLY the fully updated valid JSON. Do not include markdown formatting or explanations.
+2. If the user wants to modify the survey:
+   - Apply the requested changes to the JSON structure.
+   - Maintain the integrity of the existing structure (IDs, languages, etc.) unless explicitly asked to change them.
+   - If adding content, ensure it is multilingual (en, sc, tc).
+   - Return the updated survey in the 'updatedSurvey' field.
+3. If the user asks a question or the instruction is conversational (not a modification):
+   - Set 'updatedSurvey' to null.
+   - Provide a helpful answer in the 'responseMessage' field.
+4. Return ONLY valid JSON matching the specified schema. Do not include markdown formatting or explanations.
+
+JSON Schema:
+{
+  "updatedSurvey": { ...SurveySchema... } | null,
+  "responseMessage": "string"
+}
 `;
 
 /**
@@ -74,7 +85,10 @@ export async function refineSurvey(currentSchema: SurveySchema, instruction: str
 
 User Instruction: ${instruction}
 
-Update the survey based on the instruction. Return ONLY the updated JSON.`;
+Analyze the instruction.
+If it requires changing the survey, return { "updatedSurvey": ...full_updated_json..., "responseMessage": "I have updated the survey..." }.
+If it is just a question or comment, return { "updatedSurvey": null, "responseMessage": "...your answer..." }.
+Return ONLY the JSON object.`;
   
   const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
   return callAI<{ updatedSurvey: SurveySchema | null, responseMessage: string }>(messages, REFINEMENT_SYSTEM_INSTRUCTION);

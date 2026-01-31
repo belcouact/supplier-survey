@@ -35,6 +35,7 @@ export function AdminPage({ language }: AdminPageProps) {
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const [tempQuestion, setTempQuestion] = useState<SurveyQuestion | null>(null);
   const [pastHistory, setPastHistory] = useState<SurveySchema[]>([]);
+  const [currentStep, setCurrentStep] = useState(0);
 
   // --- Fetch Templates ---
   useEffect(() => {
@@ -168,8 +169,12 @@ export function AdminPage({ language }: AdminPageProps) {
     
     if (direction === 'up' && index > 0) {
       [sections[index], sections[index - 1]] = [sections[index - 1], sections[index]];
+      if (index === currentStep) setCurrentStep(index - 1);
+      else if (index - 1 === currentStep) setCurrentStep(index);
     } else if (direction === 'down' && index < sections.length - 1) {
       [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]];
+      if (index === currentStep) setCurrentStep(index + 1);
+      else if (index + 1 === currentStep) setCurrentStep(index);
     }
     
     setGeneratedSurvey({ ...generatedSurvey, sections });
@@ -182,6 +187,12 @@ export function AdminPage({ language }: AdminPageProps) {
     pushToHistory();
     const sections = generatedSurvey.sections.filter((_, i) => i !== index);
     setGeneratedSurvey({ ...generatedSurvey, sections });
+    
+    if (index < currentStep) {
+        setCurrentStep(currentStep - 1);
+    } else if (currentStep >= sections.length) {
+        setCurrentStep(Math.max(0, sections.length - 1));
+    }
   };
 
   const handleStartEdit = (sectionId: string, currentTitle: LocalizedText | string) => {
@@ -472,7 +483,34 @@ export function AdminPage({ language }: AdminPageProps) {
                     </p>
                 </div>
 
+                {/* Tabs Navigation */}
+                <div className="mt-8 mb-6 flex overflow-x-auto pb-2 gap-2 md:justify-center no-scrollbar">
+                    {generatedSurvey.sections.map((section, idx) => {
+                        const isActive = idx === currentStep;
+                        const isCompleted = idx < currentStep;
+                        return (
+                            <button
+                                key={section.id}
+                                type="button"
+                                onClick={() => setCurrentStep(idx)}
+                                className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
+                                  ${isActive 
+                                    ? 'bg-blue-600 text-white shadow-md' 
+                                    : isCompleted 
+                                      ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
+                                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                                  }`}
+                            >
+                                {isCompleted && <Check size={14} className="mr-1.5" />}
+                                <span className="mr-2">{idx + 1}.</span>
+                                {getText(section.title)}
+                            </button>
+                        );
+                    })}
+                </div>
+
                 {generatedSurvey.sections.map((section, sIdx) => (
+                    sIdx === currentStep && (
                     <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md group">
                          {/* Section Header */}
                          <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
@@ -542,15 +580,43 @@ export function AdminPage({ language }: AdminPageProps) {
                                         </div>
                                     ) : (
                                         <div>
-                                            <span className="text-gray-400 mr-2 text-sm font-semibold">{sIdx + 1}.{qIdx + 1}</span>
-                                            <span className="font-medium text-gray-800">{getText(q.text)}</span>
-                                            {q.required && <span className="text-red-500 ml-1">*</span>}
+                                            <div className="flex items-baseline">
+                                                <span className="text-gray-400 mr-2 text-sm font-semibold">{sIdx + 1}.{qIdx + 1}</span>
+                                                <span className="font-medium text-gray-800">{getText(q.text)}</span>
+                                                {q.required && <span className="text-red-500 ml-1">*</span>}
+                                            </div>
+                                            
+                                            {/* Preview Options */}
+                                            {(q.type === 'single_choice' || q.type === 'multiple_choice') && (
+                                                <div className="mt-3 space-y-2 ml-6">
+                                                    {q.options?.map((opt, oIdx) => (
+                                                        <div key={oIdx} className="flex items-center text-sm text-gray-600">
+                                                            <div className={`w-4 h-4 mr-3 border flex-shrink-0 flex items-center justify-center ${q.type === 'multiple_choice' ? 'rounded border-gray-300' : 'rounded-full border-gray-300'}`}>
+                                                            </div>
+                                                            <span>{getText(opt.label)}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            
+                                            {/* Preview Text Inputs */}
+                                            {(q.type === 'short_text' || q.type === 'number') && (
+                                                <div className="mt-3 ml-6">
+                                                    <div className="w-full max-w-md h-10 border border-gray-200 rounded bg-gray-50/50"></div>
+                                                </div>
+                                            )}
+                                            {q.type === 'long_text' && (
+                                                <div className="mt-3 ml-6">
+                                                    <div className="w-full max-w-md h-20 border border-gray-200 rounded bg-gray-50/50"></div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
                             ))}
                          </div>
                     </div>
+                    )
                 ))}
             </div>
         )}
