@@ -33,6 +33,7 @@ export function AdminPage({ language }: AdminPageProps) {
   // --- Analytics State ---
   const [selectedAnalyticsTemplateId, setSelectedAnalyticsTemplateId] = useState<string>('');
   const [analyticsResults, setAnalyticsResults] = useState<SurveyResult[]>([]);
+  const [viewingResult, setViewingResult] = useState<SurveyResult | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   
   // --- Chat State ---
@@ -174,6 +175,25 @@ export function AdminPage({ language }: AdminPageProps) {
     if (!content) return '';
     if (typeof content === 'string') return content;
     return content[language] || content.en || '';
+  };
+
+  const renderAnswer = (question: SurveyQuestion, answer: any) => {
+    if (answer === undefined || answer === null || answer === '') return <span className="text-gray-400 italic">No answer</span>;
+
+    if (question.type === 'single_choice' || question.type === 'multiple_choice') {
+        if (Array.isArray(answer)) {
+            return answer.map(val => {
+                const opt = question.options?.find(o => o.value === val);
+                return opt ? getText(opt.label) : val;
+            }).join(', ');
+        } else {
+            const opt = question.options?.find(o => o.value === answer);
+            return opt ? getText(opt.label) : answer;
+        }
+    }
+    
+    if (typeof answer === 'boolean') return answer ? 'Yes' : 'No';
+    return String(answer);
   };
 
   // --- AI Generation Logic ---
@@ -644,7 +664,12 @@ export function AdminPage({ language }: AdminPageProps) {
                                                         {new Date(result.updated_at).toLocaleString()}
                                                     </td>
                                                     <td className="px-6 py-3">
-                                                        <button className="text-blue-600 hover:underline">View Details</button>
+                                                        <button 
+                                                            onClick={() => setViewingResult(result)}
+                                                            className="text-blue-600 hover:underline"
+                                                        >
+                                                            View Details
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -1030,6 +1055,56 @@ export function AdminPage({ language }: AdminPageProps) {
                     </div>
                     )
                 ))}
+            </div>
+        )}
+
+        {/* State: Viewing Result Details */}
+        {viewingResult && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
+                    <button 
+                        onClick={() => setViewingResult(null)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    >
+                        <X size={24} />
+                    </button>
+                    
+                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Response Details</h2>
+                    
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
+                            <div>
+                                <span className="block font-medium text-gray-700">Respondent</span>
+                                {viewingResult.user_id === 'anonymous' ? 'Anonymous User' : viewingResult.user_id}
+                            </div>
+                            <div>
+                                <span className="block font-medium text-gray-700">Date</span>
+                                {new Date(viewingResult.updated_at || '').toLocaleString()}
+                            </div>
+                        </div>
+
+                        {templates.find(t => t.id === selectedAnalyticsTemplateId)?.schema.sections.map(section => (
+                            <div key={section.id} className="space-y-4">
+                                <h3 className="font-bold text-gray-800 text-lg pb-2 border-b border-gray-100">
+                                    {getText(section.title)}
+                                </h3>
+                                <div className="space-y-4">
+                                    {section.questions.map(question => {
+                                        const answer = viewingResult.answers[question.id];
+                                        return (
+                                            <div key={question.id} className="bg-gray-50 p-4 rounded-lg">
+                                                <p className="font-medium text-gray-900 mb-2">{getText(question.text)}</p>
+                                                <div className="text-gray-700">
+                                                    {renderAnswer(question, answer)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         )}
 
