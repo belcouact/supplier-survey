@@ -42,38 +42,25 @@ export default function App() {
   }, []);
 
   const checkAdminStatus = (email?: string) => {
-    // For this demo, we can simulate admin via a specific email or local state
-    // The prompt asked for "default user name: admin, and password: admin"
-    // Since Supabase Auth usually requires email, we'll handle the "admin/admin" login separately in AuthModal
-    // and set a local state.
-    // If the user logs in via Supabase with an email like 'admin@example.com', we could treat them as admin too.
-    // But primarily, we rely on the manual "Admin Login" flow if it's separate, 
-    // OR we just set isAdmin=true if the user object has a specific flag.
-    
-    // However, the prompt implies a specific credential for admin.
-    // We will handle this by checking if the user object has a special metadata flag or if we just manually set it.
+    if (email === 'admin@wlgore.com') {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
   };
 
   const handleLoginSuccess = (userData: any) => {
-    // If the user object is our special "Admin" mock object
-    if (userData.isAdmin) {
-      setIsAdmin(true);
-      setUser(userData); // Mock user
-    } else {
-      setUser(userData);
-      setIsAdmin(false);
+    setUser(userData);
+    checkAdminStatus(userData.email);
+    if (userData.email === 'admin@wlgore.com') {
+      window.location.href = '/admin';
     }
   };
 
   const handleLogout = async () => {
-    if (isAdmin && user?.email === 'admin') {
-      setIsAdmin(false);
-      setUser(null);
-    } else {
-      await supabase.auth.signOut();
-      setUser(null);
-      setIsAdmin(false);
-    }
+    await supabase.auth.signOut();
+    setUser(null);
+    setIsAdmin(false);
     window.location.href = '/';
   };
 
