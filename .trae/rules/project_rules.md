@@ -3,7 +3,9 @@
 ## Tech Stack
 - **Frontend:** React, TypeScript, Tailwind CSS
 - **Backend:** Cloudflare Workers (Serverless)
-- **Database:** Supabase PostgreSQL & Bucket
+- **Database:** Supabase PostgreSQL & Bucket (using below environment variables)
+    - VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_iSp7NA05n52SCuA5BxPlrg_m5C4sVFt
+    - VITE_SUPABASE_URL: https://sellervptovbxfzkldtz.supabase.co
 
 ## Project Directory Structure
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { generateSurvey } from './services/aiService';
+import { saveSurveyTemplate } from './services/templateService';
 import { Language, SurveySchema, SurveyAnswers, QuestionType } from './types';
 
 export default function App() {
@@ -7,10 +8,15 @@ export default function App() {
   const [language, setLanguage] = useState<Language>(Language.EN);
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [generatedSurvey, setGeneratedSurvey] = useState<SurveySchema | null>(null);
   const [answers, setAnswers] = useState<SurveyAnswers>({});
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // --- Editing State ---
+  const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [tempSectionTitle, setTempSectionTitle] = useState('');
 
   // --- Auto-detect Language ---
   useEffect(() => {
@@ -75,6 +81,68 @@ export default function App() {
     console.log("Submitted Answers:", answers);
     // Scroll to top to see success message
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // --- Section Management ---
+  const handleMoveSection = (index: number, direction: 'up' | 'down') => {
+    if (!generatedSurvey) return;
+    const sections = [...generatedSurvey.sections];
+    
+    if (direction === 'up' && index > 0) {
+      [sections[index], sections[index - 1]] = [sections[index - 1], sections[index]];
+    } else if (direction === 'down' && index < sections.length - 1) {
+      [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]];
+    }
+    
+    setGeneratedSurvey({ ...generatedSurvey, sections });
+  };
+
+  const handleDeleteSection = (index: number) => {
+    if (!generatedSurvey) return;
+    if (!window.confirm('Are you sure you want to delete this section?')) return;
+    
+    const sections = generatedSurvey.sections.filter((_, i) => i !== index);
+    setGeneratedSurvey({ ...generatedSurvey, sections });
+  };
+
+  const handleStartEdit = (sectionId: string, currentTitle: string) => {
+    setEditingSectionId(sectionId);
+    setTempSectionTitle(currentTitle);
+  };
+
+  const handleSaveEdit = () => {
+    if (!generatedSurvey || !editingSectionId) return;
+    
+    const sections = generatedSurvey.sections.map(section => {
+      if (section.id === editingSectionId) {
+        return { ...section, title: tempSectionTitle };
+      }
+      return section;
+    });
+    
+    setGeneratedSurvey({ ...generatedSurvey, sections });
+    setEditingSectionId(null);
+    setTempSectionTitle('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSectionId(null);
+    setTempSectionTitle('');
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!generatedSurvey) return;
+    
+    try {
+      setIsSaving(true);
+      await saveSurveyTemplate(generatedSurvey);
+      alert('Template saved successfully!');
+      // Optional: Redirect or reset
+    } catch (err) {
+      alert('Failed to save template. Please check console for details.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // --- UI Components ---
@@ -217,8 +285,61 @@ export default function App() {
                 {/* Sections */}
                 {generatedSurvey.sections.map((section, sIdx) => (
                   <div key={section.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-                      <h2 className="text-xl font-bold text-slate-800">{section.title}</h2>
+                    {/* Section Header with Controls */}
+                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                      {editingSectionId === section.id ? (
+                        <div className="flex items-center space-x-2 w-full">
+                          <input
+                            type="text"
+                            value={tempSectionTitle}
+                            onChange={(e) => setTempSectionTitle(e.target.value)}
+                            className="flex-1 px-3 py-1 rounded border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            autoFocus
+                          />
+                          <button onClick={handleSaveEdit} className="text-green-600 hover:text-green-800 font-medium text-sm">Save</button>
+                          <button onClick={handleCancelEdit} className="text-gray-500 hover:text-gray-700 font-medium text-sm">Cancel</button>
+                        </div>
+                      ) : (
+                        <h2 className="text-xl font-bold text-slate-800">{section.title}</h2>
+                      )}
+                      
+                      {/* Controls */}
+                      <div className="flex items-center space-x-2 ml-4">
+                        <button 
+                          type="button"
+                          onClick={() => handleMoveSection(sIdx, 'up')}
+                          disabled={sIdx === 0}
+                          className={`p-1 rounded hover:bg-gray-200 ${sIdx === 0 ? 'text-gray-300' : 'text-gray-600'}`}
+                          title="Move Up"
+                        >
+                          ↑
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleMoveSection(sIdx, 'down')}
+                          disabled={sIdx === generatedSurvey.sections.length - 1}
+                          className={`p-1 rounded hover:bg-gray-200 ${sIdx === generatedSurvey.sections.length - 1 ? 'text-gray-300' : 'text-gray-600'}`}
+                          title="Move Down"
+                        >
+                          ↓
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleStartEdit(section.id, section.title)}
+                          className="p-1 rounded hover:bg-gray-200 text-blue-600"
+                          title="Edit Title"
+                        >
+                          ✎
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => handleDeleteSection(sIdx)}
+                          className="p-1 rounded hover:bg-red-100 text-red-600"
+                          title="Delete Section"
+                        >
+                          🗑
+                        </button>
+                      </div>
                     </div>
                     
                     <div className="p-6 space-y-8">
@@ -326,10 +447,25 @@ export default function App() {
 
                 <div className="flex justify-end pt-6 pb-20">
                   <button
-                    type="submit"
-                    className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    type="button"
+                    onClick={handleSaveTemplate}
+                    disabled={isSaving}
+                    className={`px-8 py-3 bg-gradient-to-r from-green-600 to-teal-600 text-white font-bold rounded-lg shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all transform focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center space-x-2 ${isSaving ? 'opacity-75 cursor-wait' : ''}`}
                   >
-                    Submit Survey Response
+                    {isSaving ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Saving Template...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                        <span>Save as Template</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
