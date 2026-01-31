@@ -50,9 +50,10 @@ export function AdminPage({ language }: AdminPageProps) {
   const [pastHistory, setPastHistory] = useState<SurveySchema[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
 
-  // --- Renaming State ---
-  const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null);
-  const [renameTitle, setRenameTitle] = useState('');
+  // --- Renaming State (Moved to Edit View) ---
+  const [isEditingHeader, setIsEditingHeader] = useState(false);
+  const [tempHeaderTitle, setTempHeaderTitle] = useState('');
+  const [tempHeaderDesc, setTempHeaderDesc] = useState('');
 
   // --- AI Model State ---
   const [selectedModel, setSelectedModel] = useState<string>('deepseek');
@@ -222,34 +223,35 @@ export function AdminPage({ language }: AdminPageProps) {
     }
   };
 
-  const handleStartRename = (e: React.MouseEvent, template: any) => {
-    e.stopPropagation();
-    setRenamingTemplateId(template.id);
-    setRenameTitle(template.title);
+  const handleStartEditHeader = () => {
+    if (!generatedSurvey) return;
+    setIsEditingHeader(true);
+    setTempHeaderTitle(getText(generatedSurvey.title));
+    setTempHeaderDesc(getText(generatedSurvey.description));
   };
 
-  const handleSaveRename = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!renamingTemplateId) return;
+  const handleSaveHeader = () => {
+    if (!generatedSurvey) return;
+    pushToHistory();
     
-    try {
-        const template = templates.find(t => t.id === renamingTemplateId);
-        if (!template) return;
+    const newTitle: LocalizedText = typeof generatedSurvey.title === 'string'
+        ? { en: tempHeaderTitle, sc: tempHeaderTitle, tc: tempHeaderTitle }
+        : { ...generatedSurvey.title, [language]: tempHeaderTitle };
 
-        const updatedTemplate = await updateTemplateTitle(renamingTemplateId, renameTitle, template.schema);
-        setTemplates(templates.map(t => t.id === renamingTemplateId ? updatedTemplate : t));
-        setRenamingTemplateId(null);
-        setRenameTitle('');
-    } catch (err) {
-        alert('Failed to rename template');
-        console.error(err);
-    }
+    const newDesc: LocalizedText = typeof generatedSurvey.description === 'string'
+        ? { en: tempHeaderDesc, sc: tempHeaderDesc, tc: tempHeaderDesc }
+        : { ...generatedSurvey.description, [language]: tempHeaderDesc };
+
+    setGeneratedSurvey({
+        ...generatedSurvey,
+        title: newTitle,
+        description: newDesc
+    });
+    setIsEditingHeader(false);
   };
 
-  const handleCancelRename = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setRenamingTemplateId(null);
-    setRenameTitle('');
+  const handleCancelHeader = () => {
+    setIsEditingHeader(false);
   };
 
   // --- Section Management ---
@@ -438,13 +440,6 @@ export function AdminPage({ language }: AdminPageProps) {
                   <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
                     <div className="absolute top-4 right-4 flex gap-1 z-10">
                         <button 
-                            onClick={(e) => handleStartRename(e, template)}
-                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
-                            title="Rename Template"
-                        >
-                            <Edit2 size={18} />
-                        </button>
-                        <button 
                             onClick={(e) => handleDuplicateTemplate(e, template)}
                             className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
                             title="Duplicate Template"
@@ -460,22 +455,7 @@ export function AdminPage({ language }: AdminPageProps) {
                         </button>
                     </div>
 
-                    {renamingTemplateId === template.id ? (
-                        <div className="flex items-center gap-2 pr-4 mb-2" onClick={e => e.stopPropagation()}>
-                            <input 
-                                type="text" 
-                                value={renameTitle}
-                                onChange={(e) => setRenameTitle(e.target.value)}
-                                className="flex-1 p-1 border rounded text-xl font-bold text-gray-800"
-                                autoFocus
-                                onClick={e => e.stopPropagation()}
-                            />
-                            <button onClick={handleSaveRename} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check size={20} /></button>
-                            <button onClick={handleCancelRename} className="p-1 text-red-500 hover:bg-red-50 rounded"><X size={20} /></button>
-                        </div>
-                    ) : (
-                        <h3 className="text-xl font-bold text-gray-800 pr-28">{template.title}</h3>
-                    )}
+                    <h3 className="text-xl font-bold text-gray-800 pr-28">{template.title}</h3>
                     
                     <p className="text-gray-500 mt-2 line-clamp-2 text-sm">{template.description}</p>
                     <div className="mt-4 flex justify-between items-center text-xs text-gray-400">
@@ -625,13 +605,54 @@ export function AdminPage({ language }: AdminPageProps) {
                 </div>
 
                 {/* Survey Editor (Simplified for brevity - assumes similar structure to original App.tsx but using the state here) */}
-                <div className="text-center mb-10 space-y-2">
-                    <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
-                        {getText(generatedSurvey.title)}
-                    </h1>
-                    <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                        {getText(generatedSurvey.description)}
-                    </p>
+                <div className="text-center mb-10 space-y-2 relative group/header">
+                    {isEditingHeader ? (
+                        <div className="max-w-2xl mx-auto space-y-4 p-4 bg-white rounded-lg border border-blue-200 shadow-sm">
+                            <input
+                                type="text"
+                                value={tempHeaderTitle}
+                                onChange={(e) => setTempHeaderTitle(e.target.value)}
+                                className="w-full text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight text-center border-b border-gray-300 focus:border-blue-500 focus:outline-none pb-2"
+                                placeholder="Survey Title"
+                            />
+                            <textarea
+                                value={tempHeaderDesc}
+                                onChange={(e) => setTempHeaderDesc(e.target.value)}
+                                className="w-full text-lg text-slate-600 text-center border rounded p-2 focus:border-blue-500 focus:outline-none resize-none"
+                                rows={3}
+                                placeholder="Survey Description"
+                            />
+                            <div className="flex justify-center gap-2">
+                                <button onClick={handleSaveHeader} className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium">
+                                    <Check size={16} /> Save
+                                </button>
+                                <button onClick={handleCancelHeader} className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm font-medium hover:bg-gray-200">
+                                    <X size={16} /> Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="relative inline-block">
+                                <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+                                    {getText(generatedSurvey.title)}
+                                </h1>
+                            </div>
+                            <div className="relative block">
+                                <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                    {getText(generatedSurvey.description)}
+                                </p>
+                            </div>
+                            
+                            <button 
+                                onClick={handleStartEditHeader}
+                                className="absolute top-0 right-0 md:right-20 opacity-0 group-hover/header:opacity-100 transition-opacity p-2 text-gray-400 hover:text-blue-600 bg-white/50 hover:bg-white rounded-full"
+                                title="Edit Title & Description"
+                            >
+                                <Edit2 size={20} />
+                            </button>
+                        </>
+                    )}
                 </div>
 
                 {/* Tabs Navigation */}
