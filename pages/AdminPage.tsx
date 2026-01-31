@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey } from '../services/aiService';
-import { saveSurveyTemplate, getTemplates, deleteTemplate } from '../services/templateService';
-import { Language, SurveySchema, QuestionType, SurveyQuestion, LocalizedText, ChatMessage } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X } from 'lucide-react';
+import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle } from '../services/templateService';
+import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage } from '../types';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface AdminPageProps {
@@ -11,8 +11,6 @@ interface AdminPageProps {
 }
 
 export function AdminPage({ language }: AdminPageProps) {
-  const navigate = useNavigate();
-
   // --- State ---
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -37,6 +35,10 @@ export function AdminPage({ language }: AdminPageProps) {
   const [tempQuestion, setTempQuestion] = useState<SurveyQuestion | null>(null);
   const [pastHistory, setPastHistory] = useState<SurveySchema[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
+
+  // --- Renaming State ---
+  const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null);
+  const [renameTitle, setRenameTitle] = useState('');
 
   // --- Fetch Templates ---
   useEffect(() => {
@@ -175,6 +177,47 @@ export function AdminPage({ language }: AdminPageProps) {
     }
   };
 
+  const handleDuplicateTemplate = async (e: React.MouseEvent, template: any) => {
+    e.stopPropagation();
+    try {
+        const newTemplate = await duplicateTemplate(template);
+        setTemplates([newTemplate, ...templates]);
+    } catch (err) {
+        alert('Failed to duplicate template');
+        console.error(err);
+    }
+  };
+
+  const handleStartRename = (e: React.MouseEvent, template: any) => {
+    e.stopPropagation();
+    setRenamingTemplateId(template.id);
+    setRenameTitle(template.title);
+  };
+
+  const handleSaveRename = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!renamingTemplateId) return;
+    
+    try {
+        const template = templates.find(t => t.id === renamingTemplateId);
+        if (!template) return;
+
+        const updatedTemplate = await updateTemplateTitle(renamingTemplateId, renameTitle, template.schema);
+        setTemplates(templates.map(t => t.id === renamingTemplateId ? updatedTemplate : t));
+        setRenamingTemplateId(null);
+        setRenameTitle('');
+    } catch (err) {
+        alert('Failed to rename template');
+        console.error(err);
+    }
+  };
+
+  const handleCancelRename = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRenamingTemplateId(null);
+    setRenameTitle('');
+  };
+
   // --- Section Management ---
   const handleMoveSection = (index: number, direction: 'up' | 'down') => {
     if (!generatedSurvey) return;
@@ -219,8 +262,8 @@ export function AdminPage({ language }: AdminPageProps) {
     pushToHistory();
     const sections = generatedSurvey.sections.map(section => {
       if (section.id === editingSectionId) {
-        const newTitle = typeof section.title === 'string' 
-            ? tempSectionTitle 
+        const newTitle: LocalizedText = typeof section.title === 'string' 
+            ? { en: tempSectionTitle, sc: tempSectionTitle, tc: tempSectionTitle }
             : { ...section.title, [language]: tempSectionTitle };
         return { ...section, title: newTitle };
       }
@@ -359,14 +402,47 @@ export function AdminPage({ language }: AdminPageProps) {
 
                 {templates.map((template) => (
                   <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
-                    <button 
-                        onClick={(e) => handleDeleteTemplate(e, template.id)}
-                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
-                        title="Delete Template"
-                    >
-                        <Trash2 size={18} />
-                    </button>
-                    <h3 className="text-xl font-bold text-gray-800 pr-8">{template.title}</h3>
+                    <div className="absolute top-4 right-4 flex gap-1 z-10">
+                        <button 
+                            onClick={(e) => handleStartRename(e, template)}
+                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                            title="Rename Template"
+                        >
+                            <Edit2 size={18} />
+                        </button>
+                        <button 
+                            onClick={(e) => handleDuplicateTemplate(e, template)}
+                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
+                            title="Duplicate Template"
+                        >
+                            <Copy size={18} />
+                        </button>
+                        <button 
+                            onClick={(e) => handleDeleteTemplate(e, template.id)}
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                            title="Delete Template"
+                        >
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
+
+                    {renamingTemplateId === template.id ? (
+                        <div className="flex items-center gap-2 pr-4 mb-2" onClick={e => e.stopPropagation()}>
+                            <input 
+                                type="text" 
+                                value={renameTitle}
+                                onChange={(e) => setRenameTitle(e.target.value)}
+                                className="flex-1 p-1 border rounded text-xl font-bold text-gray-800"
+                                autoFocus
+                                onClick={e => e.stopPropagation()}
+                            />
+                            <button onClick={handleSaveRename} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check size={20} /></button>
+                            <button onClick={handleCancelRename} className="p-1 text-red-500 hover:bg-red-50 rounded"><X size={20} /></button>
+                        </div>
+                    ) : (
+                        <h3 className="text-xl font-bold text-gray-800 pr-28">{template.title}</h3>
+                    )}
+                    
                     <p className="text-gray-500 mt-2 line-clamp-2 text-sm">{template.description}</p>
                     <div className="mt-4 flex justify-between items-center text-xs text-gray-400">
                         <span>{new Date(template.created_at).toLocaleDateString()}</span>
@@ -449,7 +525,8 @@ export function AdminPage({ language }: AdminPageProps) {
         {generatedSurvey && (
             <div className="animate-fade-in space-y-6 pb-20">
                 {/* Control Bar */}
-                <div className="sticky top-16 z-40 bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-wrap gap-3 justify-between items-center mb-6">
+                <div className="sticky top-16 z-40 bg-white shadow-md border-b border-gray-200 mb-6 -mx-4 md:-mx-8 px-4 md:px-8 py-3">
+                  <div className="max-w-7xl mx-auto flex flex-wrap gap-3 justify-between items-center">
                     <button 
                         onClick={() => setGeneratedSurvey(null)}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100"
@@ -492,6 +569,7 @@ export function AdminPage({ language }: AdminPageProps) {
                             {isSaving ? 'Saving...' : 'Save Template'}
                         </button>
                     </div>
+                  </div>
                 </div>
 
                 {/* Survey Editor (Simplified for brevity - assumes similar structure to original App.tsx but using the state here) */}
@@ -702,13 +780,13 @@ export function AdminPage({ language }: AdminPageProps) {
                                     ? 'bg-blue-600 text-white rounded-br-none' 
                                     : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}`}
                             >
-                                <ReactMarkdown 
-                                    className={`prose prose-sm max-w-none break-words ${
-                                        msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate text-gray-700'
-                                    }`}
-                                >
+                                <div className={`prose prose-sm max-w-none break-words ${
+                                msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate text-gray-700'
+                            }`}>
+                                <ReactMarkdown>
                                     {msg.content}
                                 </ReactMarkdown>
+                            </div>
                             </div>
                         </div>
                     ))

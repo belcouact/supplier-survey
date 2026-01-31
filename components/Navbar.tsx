@@ -26,28 +26,7 @@ export function Navbar({ user, isAdmin, language, onLanguageChange, onOpenAuth, 
           </div>
           
           <div className="flex items-center space-x-4">
-            {/* Language Switcher */}
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              <button 
-                onClick={() => onLanguageChange(Language.EN)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${language === Language.EN ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                EN
-              </button>
-              <button 
-                onClick={() => onLanguageChange(Language.SC)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${language === Language.SC ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                简
-              </button>
-              <button 
-                onClick={() => onLanguageChange(Language.TC)}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${language === Language.TC ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                繁
-              </button>
-            </div>
-
+            
             {isAdmin && (
               <Link 
                 to="/admin" 

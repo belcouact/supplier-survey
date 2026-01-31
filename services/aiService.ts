@@ -6,12 +6,13 @@ const GENERATION_SYSTEM_INSTRUCTION = `You are a world-class Supply Chain Audito
 Your goal is to create a professional, detailed supplier vetting survey based on the user's specific business context.
 
 Rules:
-1. The survey must be generated in 3 languages simultaneously: English (en), Simplified Chinese (sc), and Traditional Chinese (tc).
+1. Detect the language of the user's input. The survey content MUST be generated in that SAME language.
 2. Structure the survey into logical sections (e.g., General Info, Production Capacity, Quality Control, Sustainability).
 3. Use a mix of question types: 'short_text', 'long_text', 'single_choice' (radio), 'multiple_choice' (checkbox), 'number'.
 4. Ensure questions are specific to the industry mentioned in the context.
 5. The 'type' field in the JSON MUST be one of the exact strings listed in the prompt instructions.
-6. Return ONLY valid JSON matching the specified schema. Do not include any other text.
+6. Populate the 'en', 'sc', and 'tc' fields with the SAME content (in the detected language). Do NOT translate.
+7. Return ONLY valid JSON matching the specified schema. Do not include any other text.
 
 JSON Schema:
 {
@@ -49,7 +50,7 @@ Rules:
 2. If the user wants to modify the survey:
    - Apply the requested changes to the JSON structure.
    - Maintain the integrity of the existing structure (IDs, languages, etc.) unless explicitly asked to change them.
-   - If adding content, ensure it is multilingual (en, sc, tc).
+   - If adding content, ensure it is in the same language as the rest of the survey (or user input). Populate 'en', 'sc', 'tc' with the same text.
    - Return the updated survey in the 'updatedSurvey' field.
 3. If the user asks a question or the instruction is conversational (not a modification):
    - Set 'updatedSurvey' to null.
