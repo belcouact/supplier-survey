@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI, Type } from "@google/genai";
+import { generateSurvey } from './services/aiService';
 import { Language, SurveySchema, SurveyAnswers, QuestionType } from './types';
 
 export default function App() {
@@ -35,89 +35,10 @@ export default function App() {
     setFormSubmitted(false);
 
     try {
-      // Access process.env carefully to avoid reference errors in strict browser environments
-      // We assume the bundler replaces process.env.API_KEY, but accessing 'process' directly can sometimes fail if not polyfilled.
-      // However, per instructions, we must use process.env.API_KEY.
-      // We wrap initialization in the try block to catch any synchronous errors.
-      const apiKey = process.env.API_KEY;
-      if (!apiKey) {
-         throw new Error("API Key not found. Please check your environment configuration.");
-      }
-      
-      const ai = new GoogleGenAI({ apiKey });
-      
       const langName = language === Language.EN ? 'English' : language === Language.SC ? 'Simplified Chinese' : 'Traditional Chinese';
       
-      const systemInstruction = `You are a world-class Supply Chain Auditor and Survey Designer. 
-      Your goal is to create a professional, detailed supplier vetting survey based on the user's specific business context.
-      
-      Rules:
-      1. The survey must be in ${langName}.
-      2. Structure the survey into logical sections (e.g., General Info, Production Capacity, Quality Control, Sustainability).
-      3. Use a mix of question types: 'short_text', 'long_text', 'single_choice' (radio), 'multiple_choice' (checkbox), 'number'.
-      4. Ensure questions are specific to the industry mentioned in the context.
-      5. The 'type' field in the JSON MUST be one of the exact strings listed in the prompt instructions.
-      6. Return ONLY valid JSON matching the specified schema.
-      `;
-
-      const prompt = `Context: ${userContext}. Create a comprehensive survey for this supplier.`;
-
-      // Simplified schema to avoid backend parsing errors with strict enums
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: prompt,
-        config: {
-          systemInstruction: systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              title: { type: Type.STRING },
-              description: { type: Type.STRING },
-              sections: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    id: { type: Type.STRING },
-                    title: { type: Type.STRING },
-                    questions: {
-                      type: Type.ARRAY,
-                      items: {
-                        type: Type.OBJECT,
-                        properties: {
-                          id: { type: Type.STRING },
-                          text: { type: Type.STRING },
-                          type: { type: Type.STRING, description: "One of: short_text, long_text, single_choice, multiple_choice, number" },
-                          placeholder: { type: Type.STRING },
-                          required: { type: Type.BOOLEAN },
-                          options: {
-                            type: Type.ARRAY,
-                            items: {
-                              type: Type.OBJECT,
-                              properties: {
-                                label: { type: Type.STRING },
-                                value: { type: Type.STRING }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      });
-
-      if (response.text) {
-        const surveyData = JSON.parse(response.text) as SurveySchema;
-        setGeneratedSurvey(surveyData);
-      } else {
-        throw new Error("No content generated");
-      }
+      const surveyData = await generateSurvey(userContext, langName);
+      setGeneratedSurvey(surveyData);
 
     } catch (err: any) {
       console.error("Generation Error:", err);
