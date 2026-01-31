@@ -53,7 +53,11 @@ export default function App() {
     setUser(userData);
     checkAdminStatus(userData.email);
     if (userData.email === 'admin@wlgore.com') {
-      window.location.href = '/admin';
+      // Use purely client-side navigation if possible, but we are outside Router context here.
+      // We'll rely on Router's basename for internal links, but here we need manual handling or reload.
+      // To avoid reload, we could structure App differently, but for now let's fix the path.
+      const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+      window.location.href = `${basePath}admin`;
     }
   };
 
@@ -61,11 +65,12 @@ export default function App() {
     await supabase.auth.signOut();
     setUser(null);
     setIsAdmin(false);
-    window.location.href = '/';
+    const basePath = import.meta.env.BASE_URL;
+    window.location.href = basePath;
   };
 
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen bg-gray-50 text-slate-800 flex flex-col font-sans">
         <Navbar 
           user={user} 
