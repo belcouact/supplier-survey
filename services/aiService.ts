@@ -150,8 +150,21 @@ async function callAI<T>(messages: ChatMessage[], systemInstruction: string, mod
        throw new Error('Unknown response format from API');
     }
 
-    // Clean up markdown code blocks if present
-    const jsonString = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+    // Extract JSON from the response
+    let jsonString = content;
+    
+    // 1. Try to find markdown code block
+    const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch) {
+      jsonString = codeBlockMatch[1];
+    } else {
+      // 2. If no code block, try to find the first '{' and last '}'
+      const firstBrace = content.indexOf('{');
+      const lastBrace = content.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonString = content.substring(firstBrace, lastBrace + 1);
+      }
+    }
     
     return JSON.parse(jsonString) as T;
 
