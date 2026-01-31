@@ -58,13 +58,13 @@ Rules:
 export async function generateSurvey(userContext: string): Promise<SurveySchema> {
   const prompt = `Context: ${userContext}. Create a comprehensive survey for this supplier. Return ONLY the JSON.`;
   const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
-  return callAI(messages, GENERATION_SYSTEM_INSTRUCTION);
+  return callAI<SurveySchema>(messages, GENERATION_SYSTEM_INSTRUCTION);
 }
 
 /**
  * Refines an existing survey based on user instruction and current state.
  */
-export async function refineSurvey(currentSchema: SurveySchema, instruction: string, history: ChatMessage[] = []): Promise<SurveySchema> {
+export async function refineSurvey(currentSchema: SurveySchema, instruction: string, history: ChatMessage[] = []): Promise<{ updatedSurvey: SurveySchema | null, responseMessage: string }> {
   // Convert history to a text summary to provide context without confusing the strict JSON system prompt
   const historyContext = history.length > 0 
     ? `Conversation History:\n${history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
@@ -77,13 +77,13 @@ User Instruction: ${instruction}
 Update the survey based on the instruction. Return ONLY the updated JSON.`;
   
   const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
-  return callAI(messages, REFINEMENT_SYSTEM_INSTRUCTION);
+  return callAI<{ updatedSurvey: SurveySchema | null, responseMessage: string }>(messages, REFINEMENT_SYSTEM_INSTRUCTION);
 }
 
 /**
  * Common AI call handler
  */
-async function callAI(messages: ChatMessage[], systemInstruction: string): Promise<SurveySchema> {
+async function callAI<T>(messages: ChatMessage[], systemInstruction: string): Promise<T> {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -120,7 +120,7 @@ async function callAI(messages: ChatMessage[], systemInstruction: string): Promi
     // Clean up markdown code blocks if present
     const jsonString = content.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
     
-    return JSON.parse(jsonString) as SurveySchema;
+    return JSON.parse(jsonString) as T;
 
   } catch (error) {
     console.error('AI Service Error:', error);

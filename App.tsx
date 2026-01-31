@@ -70,6 +70,8 @@ export default function App() {
         <Navbar 
           user={user} 
           isAdmin={isAdmin}
+          language={language}
+          onLanguageChange={setLanguage}
           onOpenAuth={() => setIsAuthOpen(true)}
           onLogout={handleLogout}
         />

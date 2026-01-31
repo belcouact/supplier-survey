@@ -39,6 +39,7 @@ export interface SurveySection {
 }
 
 export interface SurveySchema {
+  id?: string;
   title: LocalizedText;
   description: LocalizedText;
   sections: SurveySection[];

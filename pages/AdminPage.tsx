@@ -121,19 +121,22 @@ export function AdminPage({ language }: AdminPageProps) {
     setChatHistory(newHistory);
 
     try {
-        pushToHistory();
-        const updatedSurvey = await refineSurvey(generatedSurvey, userMsg, chatHistory);
-        setGeneratedSurvey(updatedSurvey);
+        const result = await refineSurvey(generatedSurvey, userMsg, chatHistory);
+        
+        if (result.updatedSurvey) {
+            pushToHistory();
+            setGeneratedSurvey(result.updatedSurvey);
+        }
         
         setChatHistory([
             ...newHistory, 
-            { role: 'assistant', content: "I've updated the survey based on your request." }
+            { role: 'assistant', content: result.responseMessage }
         ]);
     } catch (err) {
         console.error(err);
         setChatHistory([
             ...newHistory, 
-            { role: 'assistant', content: "Sorry, I encountered an error while updating the survey. Please try again." }
+            { role: 'assistant', content: "Sorry, I encountered an error while processing your request. Please try again." }
         ]);
     } finally {
         setIsChatLoading(false);
@@ -306,7 +309,7 @@ export function AdminPage({ language }: AdminPageProps) {
 
   return (
     <div className={`flex-1 p-4 md:p-8 overflow-y-auto ${fontClass} ${isChatOpen ? 'mr-80 md:mr-96' : ''}`}>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         
         {/* State: Template List */}
         {!generatedSurvey && !isGenerating && (
