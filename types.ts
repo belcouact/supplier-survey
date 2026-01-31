@@ -12,33 +12,44 @@ export type TranslationMatrix = {
 
 export type QuestionType = 'short_text' | 'long_text' | 'single_choice' | 'multiple_choice' | 'number';
 
+export interface LocalizedText {
+  en: string;
+  sc: string;
+  tc: string;
+}
+
 export interface SurveyOption {
-  label: string;
+  label: LocalizedText;
   value: string;
 }
 
 export interface SurveyQuestion {
   id: string;
-  text: string;
+  text: LocalizedText;
   type: QuestionType;
   options?: SurveyOption[]; // For single/multiple choice
   required?: boolean;
-  placeholder?: string;
+  placeholder?: LocalizedText;
 }
 
 export interface SurveySection {
   id: string;
-  title: string;
+  title: LocalizedText;
   questions: SurveyQuestion[];
 }
 
 export interface SurveySchema {
-  title: string;
-  description: string;
+  title: LocalizedText;
+  description: LocalizedText;
   sections: SurveySection[];
 }
 
 // Generic container for answers to a dynamic form
 export interface SurveyAnswers {
   [questionId: string]: string | string[] | number | boolean;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
 }

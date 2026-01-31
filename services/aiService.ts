@@ -1,13 +1,12 @@
-import { SurveySchema } from '../types';
+import { SurveySchema, ChatMessage } from '../types';
 
 const API_URL = 'https://multi-model-worker.study-llm.me/chat';
 
-export async function generateSurvey(userContext: string, langName: string): Promise<SurveySchema> {
-  const systemInstruction = `You are a world-class Supply Chain Auditor and Survey Designer. 
+const GENERATION_SYSTEM_INSTRUCTION = `You are a world-class Supply Chain Auditor and Survey Designer. 
 Your goal is to create a professional, detailed supplier vetting survey based on the user's specific business context.
 
 Rules:
-1. The survey must be in ${langName}.
+1. The survey must be generated in 3 languages simultaneously: English (en), Simplified Chinese (sc), and Traditional Chinese (tc).
 2. Structure the survey into logical sections (e.g., General Info, Production Capacity, Quality Control, Sustainability).
 3. Use a mix of question types: 'short_text', 'long_text', 'single_choice' (radio), 'multiple_choice' (checkbox), 'number'.
 4. Ensure questions are specific to the industry mentioned in the context.
@@ -16,21 +15,24 @@ Rules:
 
 JSON Schema:
 {
-  "title": "string",
-  "description": "string",
+  "title": { "en": "string", "sc": "string", "tc": "string" },
+  "description": { "en": "string", "sc": "string", "tc": "string" },
   "sections": [
     {
       "id": "string",
-      "title": "string",
+      "title": { "en": "string", "sc": "string", "tc": "string" },
       "questions": [
         {
           "id": "string",
-          "text": "string",
+          "text": { "en": "string", "sc": "string", "tc": "string" },
           "type": "string (one of: short_text, long_text, single_choice, multiple_choice, number)",
-          "placeholder": "string (optional)",
+          "placeholder": { "en": "string", "sc": "string", "tc": "string" } (optional),
           "required": "boolean",
           "options": [
-            { "label": "string", "value": "string" }
+            { 
+              "label": { "en": "string", "sc": "string", "tc": "string" }, 
+              "value": "string" 
+            }
           ]
         }
       ]
@@ -39,8 +41,49 @@ JSON Schema:
 }
 `;
 
-  const prompt = `Context: ${userContext}. Create a comprehensive survey for this supplier. Return ONLY the JSON.`;
+const REFINEMENT_SYSTEM_INSTRUCTION = `You are an expert Survey Editor.
+Your goal is to MODIFY an existing survey JSON based on the user's instructions.
 
+Rules:
+1. You will receive the current "Survey JSON" and a "User Instruction".
+2. Apply the requested changes to the JSON structure.
+3. Maintain the integrity of the existing structure (IDs, languages, etc.) unless explicitly asked to change them.
+4. If adding content, ensure it is multilingual (en, sc, tc).
+5. Return ONLY the fully updated valid JSON. Do not include markdown formatting or explanations.
+`;
+
+/**
+ * Generates a new survey based on a single user context string.
+ */
+export async function generateSurvey(userContext: string): Promise<SurveySchema> {
+  const prompt = `Context: ${userContext}. Create a comprehensive survey for this supplier. Return ONLY the JSON.`;
+  const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+  return callAI(messages, GENERATION_SYSTEM_INSTRUCTION);
+}
+
+/**
+ * Refines an existing survey based on user instruction and current state.
+ */
+export async function refineSurvey(currentSchema: SurveySchema, instruction: string, history: ChatMessage[] = []): Promise<SurveySchema> {
+  // Convert history to a text summary to provide context without confusing the strict JSON system prompt
+  const historyContext = history.length > 0 
+    ? `Conversation History:\n${history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
+    : '';
+
+  const prompt = `${historyContext}Current Survey JSON: ${JSON.stringify(currentSchema)}
+
+User Instruction: ${instruction}
+
+Update the survey based on the instruction. Return ONLY the updated JSON.`;
+  
+  const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+  return callAI(messages, REFINEMENT_SYSTEM_INSTRUCTION);
+}
+
+/**
+ * Common AI call handler
+ */
+async function callAI(messages: ChatMessage[], systemInstruction: string): Promise<SurveySchema> {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -48,10 +91,10 @@ JSON Schema:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gemini', // Using gemini as per user instruction to replace gemini implementation
+        model: 'gemini', 
         messages: [
           { role: 'system', content: systemInstruction },
-          { role: 'user', content: prompt }
+          ...messages
         ],
         stream: false
       }),
@@ -64,21 +107,12 @@ JSON Schema:
 
     const data = await response.json();
     
-    // The worker returns the OpenAI-compatible response format or the direct result depending on implementation.
-    // Based on multi-model-worker.js:
-    // return new Response(JSON.stringify(response), ...) where response is the result from callModelAPI
-    // callModelAPI returns `data` from the upstream API.
-    // Gemini upstream (via openai/chat/completions) usually returns { choices: [{ message: { content: ... } }] }
-    
     let content = '';
     if (data.choices && data.choices[0] && data.choices[0].message) {
       content = data.choices[0].message.content;
     } else if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-       // Fallback if it returns raw Gemini format (unlikely given the URL path in worker)
        content = data.candidates[0].content.parts[0].text;
     } else {
-       // Fallback: maybe the worker returns just the content or some other structure?
-       // Let's assume standard OpenAI format as the worker calls .../openai/chat/completions
        console.log('Unknown response format:', data);
        throw new Error('Unknown response format from API');
     }

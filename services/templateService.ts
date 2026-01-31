@@ -7,9 +7,9 @@ export async function saveSurveyTemplate(survey: SurveySchema) {
     .from('templates')
     .insert([
       {
-        title: survey.title,
-        description: survey.description,
-        schema: survey, // Assuming 'schema' column stores the full JSON
+        title: survey.title.en, // Use EN title for the main column for easier searching/listing if schema is JSON
+        description: survey.description.en,
+        schema: survey, // Stores the full multilingual JSON
         created_at: new Date().toISOString(),
       },
     ])
@@ -18,6 +18,20 @@ export async function saveSurveyTemplate(survey: SurveySchema) {
   if (error) {
     console.error('Error saving template:', error);
     throw error;
+  }
+
+  return data;
+}
+
+export async function getTemplates() {
+  const { data, error } = await supabase
+    .from('templates')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching templates:', error);
+    return [];
   }
 
   return data;
