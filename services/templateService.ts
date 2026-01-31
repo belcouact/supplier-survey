@@ -36,3 +36,15 @@ export async function getTemplates() {
 
   return data;
 }
+
+export async function deleteTemplate(id: string) {
+  const { error } = await supabase
+    .from('templates')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting template:', error);
+    throw error;
+  }
+}

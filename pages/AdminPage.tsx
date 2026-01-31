@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey } from '../services/aiService';
-import { saveSurveyTemplate, getTemplates } from '../services/templateService';
+import { saveSurveyTemplate, getTemplates, deleteTemplate } from '../services/templateService';
 import { Language, SurveySchema, QuestionType, SurveyQuestion, LocalizedText, ChatMessage } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface AdminPageProps {
   language: Language;
@@ -159,6 +160,19 @@ export function AdminPage({ language }: AdminPageProps) {
     localStorage.setItem('active_template_id', template.id);
     localStorage.setItem('active_template_schema', JSON.stringify(template.schema));
     alert(`"${template.title}" has been set as the active survey for the landing page.`);
+  };
+
+  const handleDeleteTemplate = async (e: React.MouseEvent, templateId: string) => {
+    e.stopPropagation(); // Prevent opening the template
+    if (window.confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
+        try {
+            await deleteTemplate(templateId);
+            setTemplates(templates.filter(t => t.id !== templateId));
+        } catch (err) {
+            alert('Failed to delete template');
+            console.error(err);
+        }
+    }
   };
 
   // --- Section Management ---
@@ -345,7 +359,14 @@ export function AdminPage({ language }: AdminPageProps) {
 
                 {templates.map((template) => (
                   <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
-                    <h3 className="text-xl font-bold text-gray-800">{template.title}</h3>
+                    <button 
+                        onClick={(e) => handleDeleteTemplate(e, template.id)}
+                        className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
+                        title="Delete Template"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                    <h3 className="text-xl font-bold text-gray-800 pr-8">{template.title}</h3>
                     <p className="text-gray-500 mt-2 line-clamp-2 text-sm">{template.description}</p>
                     <div className="mt-4 flex justify-between items-center text-xs text-gray-400">
                         <span>{new Date(template.created_at).toLocaleDateString()}</span>
@@ -428,7 +449,7 @@ export function AdminPage({ language }: AdminPageProps) {
         {generatedSurvey && (
             <div className="animate-fade-in space-y-6 pb-20">
                 {/* Control Bar */}
-                <div className="sticky top-20 z-40 bg-white/90 backdrop-blur p-4 rounded-xl shadow-sm border border-gray-200 flex flex-wrap gap-3 justify-between items-center mb-6">
+                <div className="sticky top-16 z-40 bg-white p-4 rounded-xl shadow-md border border-gray-200 flex flex-wrap gap-3 justify-between items-center mb-6">
                     <button 
                         onClick={() => setGeneratedSurvey(null)}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100"
@@ -572,7 +593,38 @@ export function AdminPage({ language }: AdminPageProps) {
                                                     className="w-full p-2 border rounded"
                                                 />
                                             </div>
-                                            {/* ... (Other edit fields like options would go here) ... */}
+                                            
+                                            {(tempQuestion.type === 'single_choice' || tempQuestion.type === 'multiple_choice') && (
+                                                <div className="space-y-2 mt-4">
+                                                    <label className="text-xs font-bold text-gray-500 uppercase">Options</label>
+                                                    <div className="space-y-2">
+                                                        {tempQuestion.options?.map((opt, oIdx) => (
+                                                            <div key={oIdx} className="flex gap-2">
+                                                                <input
+                                                                    value={getText(opt.label)}
+                                                                    onChange={(e) => updateTempOption(oIdx, e.target.value)}
+                                                                    className="flex-1 p-2 border rounded text-sm"
+                                                                    placeholder="Option text"
+                                                                />
+                                                                <button 
+                                                                    onClick={() => removeTempOption(oIdx)}
+                                                                    className="p-2 text-red-500 hover:bg-red-50 rounded border border-gray-200"
+                                                                    title="Remove option"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                        <button 
+                                                            onClick={addTempOption}
+                                                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium mt-2"
+                                                        >
+                                                            <Plus size={16} /> Add Option
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <div className="flex justify-end gap-2">
                                                 <button onClick={handleCancelEditQuestion} className="px-3 py-1 bg-gray-100 rounded">Cancel</button>
                                                 <button onClick={handleSaveQuestion} className="px-3 py-1 bg-blue-600 text-white rounded">Save</button>
@@ -650,7 +702,13 @@ export function AdminPage({ language }: AdminPageProps) {
                                     ? 'bg-blue-600 text-white rounded-br-none' 
                                     : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}`}
                             >
-                                {msg.content}
+                                <ReactMarkdown 
+                                    className={`prose prose-sm max-w-none break-words ${
+                                        msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate text-gray-700'
+                                    }`}
+                                >
+                                    {msg.content}
+                                </ReactMarkdown>
                             </div>
                         </div>
                     ))
@@ -693,22 +751,3 @@ export function AdminPage({ language }: AdminPageProps) {
   );
 }
 
-// Icon component helper
-function X({ size, className }: { size?: number, className?: string }) {
-    return (
-        <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width={size || 24} 
-            height={size || 24} 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
-            className={className}
-        >
-            <path d="M18 6 6 18"/><path d="m6 6 18 18"/>
-        </svg>
-    );
-}

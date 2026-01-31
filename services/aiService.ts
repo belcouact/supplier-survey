@@ -53,8 +53,8 @@ Rules:
    - Return the updated survey in the 'updatedSurvey' field.
 3. If the user asks a question or the instruction is conversational (not a modification):
    - Set 'updatedSurvey' to null.
-   - Provide a helpful answer in the 'responseMessage' field.
-4. Return ONLY valid JSON matching the specified schema. Do not include markdown formatting or explanations.
+   - Provide a helpful answer in the 'responseMessage' field using Markdown formatting for better readability.
+4. Return ONLY valid JSON matching the specified schema. Ensure the JSON is valid (escape characters properly).
 
 JSON Schema:
 {
@@ -105,7 +105,7 @@ async function callAI<T>(messages: ChatMessage[], systemInstruction: string): Pr
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gemini', 
+        model: 'deepseek', 
         messages: [
           { role: 'system', content: systemInstruction },
           ...messages
