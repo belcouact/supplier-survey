@@ -68,6 +68,20 @@ export async function getSurveyResult(templateId: string, userId: string): Promi
   return data as SurveyResult;
 }
 
+export async function getSurveyResultsByTemplate(templateId: string): Promise<SurveyResult[]> {
+    const { data, error } = await supabase
+        .from(TABLE_NAME)
+        .select('*')
+        .eq('template_id', templateId);
+
+    if (error) {
+        console.error('Error fetching survey results by template:', error);
+        return [];
+    }
+
+    return data as SurveyResult[];
+}
+
 /**
  * SQL Schema for Reference:
  * 

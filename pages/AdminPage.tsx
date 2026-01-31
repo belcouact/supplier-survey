@@ -1,10 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
-import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle } from '../services/templateService';
-import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage } from '../types';
+import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, setActiveTemplate, updateSurveyTemplate } from '../services/templateService';
+import { getSurveyResultsByTemplate } from '../services/resultService';
+import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import {
+  PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts';
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 interface AdminPageProps {
   language: Language;
@@ -12,14 +19,21 @@ interface AdminPageProps {
 
 export function AdminPage({ language }: AdminPageProps) {
   // --- State ---
+  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics'>('create');
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedSurvey, setGeneratedSurvey] = useState<SurveySchema | null>(null);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<any[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
+
+  // --- Analytics State ---
+  const [selectedAnalyticsTemplateId, setSelectedAnalyticsTemplateId] = useState<string>('');
+  const [analyticsResults, setAnalyticsResults] = useState<SurveyResult[]>([]);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   
   // --- Chat State ---
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
@@ -58,6 +72,46 @@ export function AdminPage({ language }: AdminPageProps) {
   // --- AI Model State ---
   const [selectedModel, setSelectedModel] = useState<string>('deepseek');
   const [availableModels, setAvailableModels] = useState<string[]>(['deepseek', 'gemini']);
+
+  const handleSetActive = async (e: React.MouseEvent, templateId: string) => {
+      e.stopPropagation();
+      try {
+          await setActiveTemplate(templateId);
+          // Update local state to reflect change
+          setTemplates(templates.map(t => ({
+              ...t,
+              is_active: t.id === templateId
+          })));
+      } catch (err) {
+          alert('Failed to set active template');
+          console.error(err);
+      }
+  };
+
+  const loadAnalytics = async (templateId: string) => {
+      if (!templateId) return;
+      setIsLoadingAnalytics(true);
+      try {
+          const results = await getSurveyResultsByTemplate(templateId);
+          setAnalyticsResults(results);
+      } catch (err) {
+          console.error('Failed to load analytics', err);
+      } finally {
+          setIsLoadingAnalytics(false);
+      }
+  };
+
+  useEffect(() => {
+      if (activeTab === 'analytics' && templates.length > 0 && !selectedAnalyticsTemplateId) {
+          setSelectedAnalyticsTemplateId(templates[0].id);
+      }
+  }, [activeTab, templates]);
+
+  useEffect(() => {
+      if (selectedAnalyticsTemplateId) {
+          loadAnalytics(selectedAnalyticsTemplateId);
+      }
+  }, [selectedAnalyticsTemplateId]);
 
   // --- Fetch Templates & Models ---
   useEffect(() => {
@@ -185,6 +239,7 @@ export function AdminPage({ language }: AdminPageProps) {
   const handleLoadTemplate = (template: any) => {
     if (template.schema) {
       setGeneratedSurvey(template.schema);
+      setEditingTemplateId(template.id);
       setChatHistory([]);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -399,11 +454,17 @@ export function AdminPage({ language }: AdminPageProps) {
     if (!generatedSurvey) return;
     try {
       setIsSaving(true);
-      await saveSurveyTemplate(generatedSurvey);
-      alert('Template saved successfully!');
+      if (editingTemplateId) {
+          await updateSurveyTemplate(editingTemplateId, generatedSurvey);
+          alert('Template updated successfully!');
+      } else {
+          await saveSurveyTemplate(generatedSurvey);
+          alert('Template saved successfully!');
+      }
       loadTemplates();
     } catch (err) {
       alert('Failed to save template.');
+      console.error(err);
     } finally {
       setIsSaving(false);
     }
@@ -423,20 +484,45 @@ export function AdminPage({ language }: AdminPageProps) {
               <p className="text-gray-500 mt-2">Manage templates and generate new surveys</p>
             </div>
 
-            {isLoadingTemplates ? (
-              <div className="text-center py-12 text-gray-400">Loading templates...</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Create New Card */}
-                 <div 
-                    onClick={() => setShowAIModal(true)}
-                    className="bg-blue-50 p-6 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-400 hover:bg-blue-100 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[200px]"
-                 >
-                    <Plus size={48} className="text-blue-500 mb-2" />
-                    <span className="text-lg font-bold text-blue-600">Create New with AI</span>
-                 </div>
+            {/* Tabs */}
+            <div className="flex justify-center border-b border-gray-200 mb-8">
+                <button
+                    onClick={() => setActiveTab('create')}
+                    className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                        activeTab === 'create' 
+                        ? 'border-blue-600 text-blue-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Create & Manage
+                </button>
+                <button
+                    onClick={() => setActiveTab('analytics')}
+                    className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                        activeTab === 'analytics' 
+                        ? 'border-blue-600 text-blue-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Analytics
+                </button>
+            </div>
 
-                {templates.map((template) => (
+            {activeTab === 'create' && (
+                isLoadingTemplates ? (
+                  <div className="text-center py-12 text-gray-400">Loading templates...</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     {/* Create New Card */}
+                     <div 
+                        onClick={() => setShowAIModal(true)}
+                        className="bg-blue-50 p-6 rounded-xl border-2 border-dashed border-blue-200 hover:border-blue-400 hover:bg-blue-100 transition-all cursor-pointer flex flex-col items-center justify-center min-h-[200px]"
+                     >
+                        <Plus size={48} className="text-blue-500 mb-2" />
+                        <span className="text-lg font-bold text-blue-600">Create New with AI</span>
+                     </div>
+
+                    {templates.map((template) => (
                   <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
                     <div className="absolute top-4 right-4 flex gap-1 z-10">
                         <button 
@@ -480,6 +566,81 @@ export function AdminPage({ language }: AdminPageProps) {
                   </div>
                 ))}
               </div>
+            ))}
+
+            {activeTab === 'analytics' && (
+                <div className="space-y-6">
+                    {/* Template Selector */}
+                    <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <label className="font-medium text-gray-700">Select Survey:</label>
+                        <select 
+                            value={selectedAnalyticsTemplateId}
+                            onChange={(e) => setSelectedAnalyticsTemplateId(e.target.value)}
+                            className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        >
+                            {templates.map(t => (
+                                <option key={t.id} value={t.id}>{t.title}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {isLoadingAnalytics ? (
+                        <div className="text-center py-12 text-gray-400">Loading analytics...</div>
+                    ) : analyticsResults.length === 0 ? (
+                        <div className="text-center py-12 text-gray-400 bg-white rounded-xl border border-gray-200 border-dashed">
+                            No responses found for this survey.
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Summary Cards */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                    <h3 className="text-gray-500 text-sm font-medium uppercase">Total Responses</h3>
+                                    <p className="text-4xl font-bold text-gray-900 mt-2">{analyticsResults.length}</p>
+                                </div>
+                                <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                                    <h3 className="text-gray-500 text-sm font-medium uppercase">Last Response</h3>
+                                    <p className="text-xl font-bold text-gray-900 mt-2">
+                                        {new Date(Math.max(...analyticsResults.map(r => new Date(r.updated_at).getTime()))).toLocaleDateString()}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Detailed Results */}
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                                    <h3 className="font-bold text-gray-800">Response History</h3>
+                                </div>
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50 text-gray-500 font-medium">
+                                            <tr>
+                                                <th className="px-6 py-3">Respondent</th>
+                                                <th className="px-6 py-3">Date</th>
+                                                <th className="px-6 py-3">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {analyticsResults.map((result) => (
+                                                <tr key={result.id} className="hover:bg-gray-50">
+                                                    <td className="px-6 py-3 font-medium text-gray-900">
+                                                        {result.user_id === 'anonymous' ? 'Anonymous User' : result.user_id}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-gray-500">
+                                                        {new Date(result.updated_at).toLocaleString()}
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <button className="text-blue-600 hover:underline">View Details</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             )}
           </div>
         )}
@@ -560,7 +721,10 @@ export function AdminPage({ language }: AdminPageProps) {
                 <div className="sticky top-0 z-40 bg-white shadow-md border-b border-gray-200 mb-6 -mx-4 md:-mx-8 px-4 md:px-8 py-3">
                   <div className="max-w-7xl mx-auto flex flex-wrap gap-3 justify-between items-center">
                     <button 
-                        onClick={() => setGeneratedSurvey(null)}
+                        onClick={() => {
+                            setGeneratedSurvey(null);
+                            setEditingTemplateId(null);
+                        }}
                         className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100"
                     >
                         <ArrowLeft size={20} />

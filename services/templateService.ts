@@ -23,6 +23,25 @@ export async function saveSurveyTemplate(survey: SurveySchema) {
   return data;
 }
 
+export async function updateSurveyTemplate(id: string, survey: SurveySchema) {
+  const { data, error } = await supabase
+    .from('templates')
+    .update({
+        title: survey.title.en,
+        description: survey.description.en,
+        schema: survey,
+    })
+    .eq('id', id)
+    .select();
+
+  if (error) {
+    console.error('Error updating template:', error);
+    throw error;
+  }
+
+  return data;
+}
+
 export async function getTemplates() {
   const { data, error } = await supabase
     .from('templates')
@@ -35,6 +54,40 @@ export async function getTemplates() {
   }
 
   return data;
+}
+
+export async function setActiveTemplate(templateId: string) {
+    // 1. Set all to inactive
+    // Note: Supabase doesn't support bulk update without WHERE clause easily in one go if we want to be safe,
+    // but we can update all rows where is_active is true to false.
+    await supabase.from('templates').update({ is_active: false }).eq('is_active', true);
+
+    // 2. Set the target template to active
+    const { data, error } = await supabase
+        .from('templates')
+        .update({ is_active: true })
+        .eq('id', templateId)
+        .select();
+
+    if (error) {
+        console.error('Error setting active template:', error);
+        throw error;
+    }
+    return data;
+}
+
+export async function getActiveTemplate() {
+    const { data, error } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('is_active', true)
+        .maybeSingle();
+        
+    if (error) {
+        console.error('Error fetching active template:', error);
+        return null;
+    }
+    return data;
 }
 
 export async function deleteTemplate(id: string) {
