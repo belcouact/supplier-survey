@@ -715,12 +715,12 @@ export function AdminPage({ user }: AdminPageProps) {
             {activeTab === 'analytics' && (
                 <div className="space-y-6">
                     {/* Template Selector */}
-                    <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
-                        <label className="font-medium text-gray-700">Select Survey:</label>
+                    <div className="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <label className="font-medium text-gray-700 whitespace-nowrap">Select Survey:</label>
                         <select 
                             value={selectedAnalyticsTemplateId}
                             onChange={(e) => setSelectedAnalyticsTemplateId(e.target.value)}
-                            className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                            className="w-full md:flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         >
                             {templates.map(t => (
                                 <option key={t.id} value={t.id}>{t.title}</option>
