@@ -72,7 +72,7 @@ export function HomePage({ user }: HomePageProps) {
           <ClipboardList className="w-12 h-12 text-blue-600" />
         </div>
         <h1 className="text-4xl font-bold text-slate-900 mb-4">
-          Welcome to Supplier Survey
+          Welcome to Survey by AI
         </h1>
         <p className="text-xl text-slate-600 max-w-2xl leading-relaxed">
           Please log in to view your survey history or access a survey directly via the link provided to you.

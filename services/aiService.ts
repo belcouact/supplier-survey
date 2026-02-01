@@ -21,7 +21,7 @@ export async function getAvailableModels(): Promise<string[]> {
 }
 
 const GENERATION_SYSTEM_INSTRUCTION = `You are a world-class Supply Chain Auditor and Survey Designer. 
-Your goal is to create a professional, detailed supplier vetting survey based on the user's specific business context.
+Your goal is to create a professional, detailed survey based on the user's specific business context.
 
 Rules:
 1. The survey content MUST be generated in English.
@@ -90,7 +90,7 @@ JSON Schema:
  * Generates a new survey based on a single user context string.
  */
 export async function generateSurvey(userContext: string, model: string = 'deepseek'): Promise<SurveySchema> {
-  const prompt = `Context: ${userContext}. Create a comprehensive survey for this supplier. Return ONLY the JSON.`;
+  const prompt = `Context: ${userContext}. Create a comprehensive survey. Return ONLY the JSON.`;
   const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
   return callAI<SurveySchema>(messages, GENERATION_SYSTEM_INSTRUCTION, model);
 }
