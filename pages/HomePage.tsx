@@ -43,6 +43,12 @@ export function HomePage({ user }: HomePageProps) {
     return new Date(dateStr) < new Date();
   };
 
+  const getText = (content: any): string => {
+    if (!content) return '';
+    if (typeof content === 'string') return content;
+    return content.en || Object.values(content)[0] as string || '';
+  };
+
   const handleCardClick = (survey: SurveyTemplate) => {
     // Navigate to survey page
     // If we have a short_id, use it, otherwise use ID (though router expects short_id usually)
@@ -99,11 +105,11 @@ export function HomePage({ user }: HomePageProps) {
                 </div>
 
                 <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2 line-clamp-2">
-                  {typeof survey.title === 'string' ? survey.title : (survey.title as any)[language] || (survey.title as any)['en']}
+                  {getText(survey.title)}
                 </h3>
                 
                 <p className="text-slate-600 text-sm mb-4 line-clamp-3">
-                  {typeof survey.description === 'string' ? survey.description : (survey.description as any)[language] || (survey.description as any)['en']}
+                  {getText(survey.description)}
                 </p>
 
                 <div className="flex items-center text-xs text-slate-500 mt-auto pt-4 border-t border-slate-100">
