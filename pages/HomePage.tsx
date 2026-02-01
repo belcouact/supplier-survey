@@ -38,8 +38,10 @@ export function HomePage({ user }: HomePageProps) {
       setDebugInfo(`User: ${user.id}, Results: ${results.length}, Templates: ${allTemplates.length}`);
 
       if (results.length > 0) {
-        const participatedIds = new Set(results.map(r => r.template_id));
-        const filtered = allTemplates.filter(t => participatedIds.has(t.id));
+        const participatedIds = new Set(results.map(r => String(r.template_id)));
+        // We need to match either id or short_id because some legacy data might store short_id as template_id
+        // Also ensure we compare strings to strings
+        const filtered = allTemplates.filter(t => participatedIds.has(String(t.id)) || participatedIds.has(String(t.short_id)));
         console.log('Filtered:', filtered);
         setParticipatedSurveys(filtered);
       } else {
