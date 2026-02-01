@@ -5,8 +5,9 @@ import { generateSurvey, refineSurvey, getAvailableModels } from '../services/ai
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
+import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
   PieChart, Pie, Cell,
@@ -690,8 +691,20 @@ export function AdminPage({ user }: AdminPageProps) {
 
                             {/* Detailed Results */}
                             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                                     <h3 className="font-bold text-gray-800">Response History</h3>
+                                    <button 
+                                        onClick={() => {
+                                            const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+                                            if (template) exportSurveyResultsToCSV(analyticsResults, template);
+                                        }}
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={analyticsResults.length === 0}
+                                        title="Download results as CSV"
+                                    >
+                                        <Download size={16} />
+                                        Export CSV
+                                    </button>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm text-left">
