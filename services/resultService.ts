@@ -82,6 +82,20 @@ export async function getSurveyResultsByTemplate(templateId: string): Promise<Su
     return data as SurveyResult[];
 }
 
+export async function getUserResults(userId: string): Promise<SurveyResult[]> {
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select('*')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error fetching user results:', error);
+    return [];
+  }
+
+  return data as SurveyResult[];
+}
+
 /**
  * SQL Schema for Reference:
  * 

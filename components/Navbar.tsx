@@ -8,10 +8,11 @@ interface NavbarProps {
   language: Language;
   onLanguageChange: (lang: Language) => void;
   onOpenAuth: () => void;
+  onOpenAdminAuth: () => void;
   onLogout: () => void;
 }
 
-export function Navbar({ user, isAdmin, language, onLanguageChange, onOpenAuth, onLogout }: NavbarProps) {
+export function Navbar({ user, isAdmin, language, onLanguageChange, onOpenAuth, onOpenAdminAuth, onLogout }: NavbarProps) {
   const navigate = useNavigate();
 
   return (
@@ -27,7 +28,7 @@ export function Navbar({ user, isAdmin, language, onLanguageChange, onOpenAuth, 
           
           <div className="flex items-center space-x-4">
             
-            {isAdmin && (
+            {isAdmin ? (
               <Link 
                 to="/admin" 
                 className="text-gray-600 hover:text-blue-600 flex items-center gap-1 text-sm font-medium"
@@ -35,6 +36,15 @@ export function Navbar({ user, isAdmin, language, onLanguageChange, onOpenAuth, 
                 <Settings size={18} />
                 <span className="hidden sm:inline">Admin</span>
               </Link>
+            ) : (
+              <button
+                onClick={onOpenAdminAuth}
+                className="text-gray-600 hover:text-blue-600 flex items-center gap-1 text-sm font-medium"
+                title="Admin Login"
+              >
+                <Settings size={18} />
+                <span className="hidden sm:inline">Manage</span>
+              </button>
             )}
 
             {user ? (

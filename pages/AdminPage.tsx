@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, setActiveTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
-import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult, SurveyTemplate } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getAllUsers, updateUserRole } from '../services/userService';
+import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight, Users, Calendar } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
   PieChart, Pie, Cell,
@@ -15,11 +16,12 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 interface AdminPageProps {
   language: Language;
+  user: any;
 }
 
-export function AdminPage({ language }: AdminPageProps) {
+export function AdminPage({ language, user }: AdminPageProps) {
   // --- State ---
-  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users'>('create');
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -29,6 +31,51 @@ export function AdminPage({ language }: AdminPageProps) {
   const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
+
+  // --- User Management State ---
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+        const role = user.user_metadata?.role;
+        const email = user.email;
+        if (email === 'admin@wlgore.com' || role === 'super_admin') {
+            setIsSuperAdmin(true);
+        } else {
+            setIsSuperAdmin(false);
+        }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'users' && isSuperAdmin) {
+        loadUsers();
+    }
+  }, [activeTab, isSuperAdmin]);
+
+  const loadUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+        const data = await getAllUsers();
+        setUsers(data);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsLoadingUsers(false);
+    }
+  };
+
+  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+    try {
+        await updateUserRole(userId, newRole);
+        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+    } catch (err) {
+        alert('Failed to update role');
+        console.error(err);
+    }
+  };
 
   // --- Analytics State ---
   const [selectedAnalyticsTemplateId, setSelectedAnalyticsTemplateId] = useState<string>('');
@@ -69,6 +116,7 @@ export function AdminPage({ language }: AdminPageProps) {
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [tempHeaderTitle, setTempHeaderTitle] = useState('');
   const [tempHeaderDesc, setTempHeaderDesc] = useState('');
+  const [tempExpirationDate, setTempExpirationDate] = useState('');
 
   // --- AI Model State ---
   const [selectedModel, setSelectedModel] = useState<string>('deepseek');
@@ -307,6 +355,7 @@ export function AdminPage({ language }: AdminPageProps) {
     setIsEditingHeader(true);
     setTempHeaderTitle(getText(generatedSurvey.title));
     setTempHeaderDesc(getText(generatedSurvey.description));
+    setTempExpirationDate(generatedSurvey.expiration_date ? new Date(generatedSurvey.expiration_date).toISOString().split('T')[0] : '');
   };
 
   const handleSaveHeader = () => {
@@ -324,7 +373,8 @@ export function AdminPage({ language }: AdminPageProps) {
     setGeneratedSurvey({
         ...generatedSurvey,
         title: newTitle,
-        description: newDesc
+        description: newDesc,
+        expiration_date: tempExpirationDate ? new Date(tempExpirationDate).toISOString() : undefined
     });
     setIsEditingHeader(false);
   };
@@ -530,6 +580,18 @@ export function AdminPage({ language }: AdminPageProps) {
                 >
                     Analytics
                 </button>
+                {isSuperAdmin && (
+                    <button
+                        onClick={() => setActiveTab('users')}
+                        className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                            activeTab === 'users' 
+                            ? 'border-blue-600 text-blue-600' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        Users
+                    </button>
+                )}
             </div>
 
             {activeTab === 'create' && (
@@ -678,6 +740,70 @@ export function AdminPage({ language }: AdminPageProps) {
                                 </div>
                             </div>
                         </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'users' && isSuperAdmin && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
+                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800">User Management</h3>
+                        <button 
+                            onClick={loadUsers} 
+                            className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                            title="Refresh Users"
+                        >
+                            <Undo size={16} className="rotate-0" />
+                        </button>
+                    </div>
+                    
+                    {isLoadingUsers ? (
+                         <div className="text-center py-12 text-gray-400">Loading users...</div>
+                    ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium">
+                                <tr>
+                                    <th className="px-6 py-3">Email</th>
+                                    <th className="px-6 py-3">Role</th>
+                                    <th className="px-6 py-3">Created At</th>
+                                    <th className="px-6 py-3">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {users.map((u) => (
+                                    <tr key={u.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-3 font-medium text-gray-900">{u.email}</td>
+                                        <td className="px-6 py-3">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                u.role === 'super_admin' ? 'bg-purple-100 text-purple-700' :
+                                                u.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {u.role === 'super_admin' ? 'Super Admin' : 
+                                                 u.role === 'admin' ? 'Admin' : 'Common User'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-3 text-gray-500">
+                                            {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <select
+                                                value={u.role || 'common_user'}
+                                                onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
+                                                disabled={u.email === 'admin@wlgore.com'} 
+                                                className="border rounded p-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                            >
+                                                <option value="common_user">Common User</option>
+                                                <option value="admin">Admin</option>
+                                                <option value="super_admin">Super Admin</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                     )}
                 </div>
             )}
@@ -831,6 +957,15 @@ export function AdminPage({ language }: AdminPageProps) {
                                 rows={3}
                                 placeholder="Survey Description"
                             />
+                            <div className="flex flex-col items-center gap-1 mt-2">
+                                <label className="text-sm font-medium text-gray-700">Expiration Date (Optional)</label>
+                                <input
+                                    type="date"
+                                    value={tempExpirationDate}
+                                    onChange={(e) => setTempExpirationDate(e.target.value)}
+                                    className="border rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
                             <div className="flex justify-center gap-2">
                                 <button onClick={handleSaveHeader} className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded text-sm font-medium">
                                     <Check size={16} /> Save
@@ -841,17 +976,23 @@ export function AdminPage({ language }: AdminPageProps) {
                             </div>
                         </div>
                     ) : (
-                        <>
-                            <div className="relative inline-block">
+                        <div className="relative">
+                             <div className="relative inline-block">
                                 <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
                                     {getText(generatedSurvey.title)}
                                 </h1>
                             </div>
                             <div className="relative block">
-                                <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+                                <p className="text-lg text-slate-600 max-w-2xl mx-auto mt-2">
                                     {getText(generatedSurvey.description)}
                                 </p>
                             </div>
+                            {generatedSurvey.expiration_date && (
+                                <p className="text-sm text-red-600 mt-2 font-medium flex items-center justify-center gap-1">
+                                    <Calendar size={14} />
+                                    Expires: {new Date(generatedSurvey.expiration_date).toLocaleDateString()}
+                                </p>
+                            )}
                             
                             <button 
                                 onClick={handleStartEditHeader}
@@ -860,7 +1001,7 @@ export function AdminPage({ language }: AdminPageProps) {
                             >
                                 <Edit2 size={20} />
                             </button>
-                        </>
+                        </div>
                     )}
                 </div>
 

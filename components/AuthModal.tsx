@@ -6,14 +6,23 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: any) => void;
+  defaultEmail?: string;
 }
 
-export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(defaultEmail || '');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('common_user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (defaultEmail) {
+        setEmail(defaultEmail);
+        setIsLogin(true); // Usually if we pre-fill, we want login
+    }
+  }, [defaultEmail]);
 
   if (!isOpen) return null;
 
@@ -37,6 +46,11 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+                role: role
+            }
+          }
         });
         if (error) throw error;
         if (data.user) {
@@ -95,6 +109,19 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
               className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
+
+          {!isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+              >
+                <option value="common_user">Common User</option>
+              </select>
+            </div>
+          )}
 
           <button
             type="submit"

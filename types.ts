@@ -40,9 +40,11 @@ export interface SurveySection {
 
 export interface SurveySchema {
   id?: string;
+  short_id?: string;
   title: LocalizedText;
   description: LocalizedText;
   sections: SurveySection[];
+  expiration_date?: string;
 }
 
 // Generic container for answers to a dynamic form
@@ -63,16 +65,22 @@ export interface SurveyResult {
   updated_at?: string;
 }
 
+export type UserRole = 'super_admin' | 'admin' | 'common_user';
+
 export interface UserProfile {
   id: string;
   email: string;
+  role?: UserRole;
+  created_at?: string;
 }
 
 export interface SurveyTemplate {
   id: string;
+  short_id?: string;
   title: string;
   description: string;
   schema: SurveySchema;
   created_at: string;
   is_active: boolean;
+  expiration_date?: string;
 }

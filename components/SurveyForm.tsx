@@ -9,6 +9,7 @@ interface SurveyFormProps {
   onAnswerChange: (qId: string, value: any, type: QuestionType) => void;
   onSubmit: (e: React.FormEvent) => void;
   isSubmitting?: boolean;
+  readOnly?: boolean;
 }
 
 export function SurveyForm({ 
@@ -17,7 +18,8 @@ export function SurveyForm({
   language, 
   onAnswerChange, 
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  readOnly = false
 }: SurveyFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -173,22 +175,24 @@ export function SurveyForm({
                 {(q.type === 'short_text' || q.type === 'number') && (
                   <input
                     type={q.type === 'number' ? 'number' : 'text'}
-                    className="w-full max-w-2xl px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white"
+                    className="w-full max-w-2xl px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white disabled:bg-gray-100 disabled:text-gray-500"
                     placeholder={getText(q.placeholder)}
                     value={answers[q.id] as string || ''}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAnswerChange(q.id, e.target.value, q.type)}
                     required={q.required}
+                    disabled={readOnly}
                   />
                 )}
 
                 {/* Long Text */}
                 {q.type === 'long_text' && (
                   <textarea
-                    className="w-full max-w-3xl px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white min-h-[120px]"
+                    className="w-full max-w-3xl px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white min-h-[120px] disabled:bg-gray-100 disabled:text-gray-500"
                     placeholder={getText(q.placeholder)}
                     value={answers[q.id] as string || ''}
                     onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onAnswerChange(q.id, e.target.value, q.type)}
                     required={q.required}
+                    disabled={readOnly}
                   />
                 )}
 
@@ -199,7 +203,8 @@ export function SurveyForm({
                       <label key={opt.value} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all group
                         ${answers[q.id] === opt.value 
                           ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500' 
-                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
+                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
+                        ${readOnly ? 'cursor-default opacity-80' : ''}`}
                       >
                         <input
                           type="radio"
@@ -207,8 +212,9 @@ export function SurveyForm({
                           value={opt.value}
                           checked={answers[q.id] === opt.value}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAnswerChange(q.id, e.target.value, q.type)}
-                          className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:text-gray-400"
                           required={q.required}
+                          disabled={readOnly}
                         />
                         <span className={`ml-3 text-base ${answers[q.id] === opt.value ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
                           {getText(opt.label)}
@@ -227,14 +233,16 @@ export function SurveyForm({
                         <label key={opt.value} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all group
                           ${isChecked
                             ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500' 
-                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}`}
+                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
+                          ${readOnly ? 'cursor-default opacity-80' : ''}`}
                         >
                           <input
                             type="checkbox"
                             value={opt.value}
                             checked={isChecked}
                             onChange={() => onAnswerChange(q.id, opt.value, q.type)}
-                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:text-gray-400"
+                            disabled={readOnly}
                           />
                           <span className={`ml-3 text-base ${isChecked ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
                             {getText(opt.label)}
@@ -275,14 +283,16 @@ export function SurveyForm({
             <ChevronRight size={20} className="ml-2" />
           </button>
         ) : (
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Submitting...' : 'Submit Survey'}
-            <Check size={20} className="ml-2" />
-          </button>
+          !readOnly && (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit Survey'}
+              <Check size={20} className="ml-2" />
+            </button>
+          )
         )}
       </div>
     </form>

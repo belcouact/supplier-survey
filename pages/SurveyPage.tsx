@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { SurveyForm } from '../components/SurveyForm';
 import { Language, SurveySchema, SurveyAnswers, QuestionType } from '../types';
 import { getSurveyResult, saveSurveyResult } from '../services/resultService';
-import { getTemplates } from '../services/templateService';
+import { getTemplateByShortId } from '../services/templateService';
+import { AlertCircle } from 'lucide-react';
 
 interface SurveyPageProps {
   language: Language;
@@ -10,17 +12,25 @@ interface SurveyPageProps {
 }
 
 export function SurveyPage({ language, user }: SurveyPageProps) {
+  const { shortId } = useParams<{ shortId: string }>();
   const [survey, setSurvey] = useState<SurveySchema | null>(null);
   const [answers, setAnswers] = useState<SurveyAnswers>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [templateId, setTemplateId] = useState<string | null>(null);
+  const [readOnly, setReadOnly] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Load Survey
   useEffect(() => {
-    loadActiveSurvey();
-  }, []);
+    if (shortId) {
+      loadSurvey(shortId);
+    } else {
+      setIsLoading(false);
+      setError('No survey ID provided.');
+    }
+  }, [shortId]);
 
   // Load User's Previous Answers if logged in
   useEffect(() => {
@@ -29,28 +39,29 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
     }
   }, [user, templateId]);
 
-  const loadActiveSurvey = async () => {
+  const loadSurvey = async (id: string) => {
     setIsLoading(true);
+    setError(null);
     try {
-      // 1. Check if there's an active template ID in localStorage (set by Admin)
-      // In a real app, this would fetch from a 'settings' endpoint
-      const activeId = localStorage.getItem('active_template_id');
-      const activeSchemaStr = localStorage.getItem('active_template_schema');
-
-      if (activeId && activeSchemaStr) {
-        setTemplateId(activeId);
-        setSurvey(JSON.parse(activeSchemaStr));
-      } else {
-        // Fallback: Fetch the most recent template
-        const templates = await getTemplates();
-        if (templates && templates.length > 0) {
-          const latest = templates[0];
-          setTemplateId(latest.id);
-          setSurvey(latest.schema);
+      const template = await getTemplateByShortId(id);
+      
+      if (template) {
+        setTemplateId(template.id);
+        setSurvey(template.schema);
+        
+        // Check expiration
+        if (template.expiration_date) {
+            const expDate = new Date(template.expiration_date);
+            if (expDate < new Date()) {
+                setReadOnly(true);
+            }
         }
+      } else {
+        setError('Survey not found.');
       }
     } catch (err) {
       console.error('Failed to load survey', err);
+      setError('Failed to load survey. Please try again later.');
     } finally {
       setIsLoading(false);
     }
@@ -61,8 +72,6 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
       const result = await getSurveyResult(tId, uId);
       if (result && result.answers) {
         setAnswers(result.answers);
-        // Optionally, could set 'formSubmitted' to true if we want to block re-submission
-        // But user asked to "resume", so we allow editing.
       }
     } catch (err) {
       console.error('Failed to load previous answers', err);
@@ -70,6 +79,8 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
   };
 
   const handleAnswerChange = (qId: string, value: any, type: QuestionType) => {
+    if (readOnly) return;
+    
     setAnswers(prev => {
       const newAnswers = { ...prev };
       
@@ -89,22 +100,15 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (readOnly) return;
+
     setIsSubmitting(true);
 
     try {
-      // If user is logged in, save to Supabase
       if (user && templateId) {
         await saveSurveyResult(templateId, user.id, answers);
       } else {
-        // If anonymous, we can't save to a user-linked row easily without a session.
-        // But prompt asked to "save result to supabase survey result table upon user entry and press submit".
-        // We'll create an anonymous record or require login?
-        // "show a user creation... allow survey result loading and resuming".
-        // This implies anonymous submission is allowed but resuming requires login.
-        // We'll save with a generated UUID or 'anonymous' user_id if allowed.
-        // For now, let's just log it if not logged in, or try to save as 'anonymous'.
         if (templateId) {
-            // Attempt to save as anonymous if RLS allows it
              await saveSurveyResult(templateId, 'anonymous', answers);
         }
       }
@@ -127,11 +131,11 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
     );
   }
 
-  if (!survey) {
+  if (error || !survey) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">No Active Survey</h2>
-        <p className="text-gray-600">Please ask the administrator to publish a survey.</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
+        <p className="text-gray-600">{error || 'Survey not found.'}</p>
       </div>
     );
   }
@@ -148,18 +152,19 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
         <p className="text-lg text-slate-600 max-w-md">
           Thank you for your feedback. Your responses have been successfully recorded.
         </p>
-        <button 
-          onClick={() => setFormSubmitted(false)}
-          className="mt-8 px-6 py-2 text-blue-600 font-medium hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          Submit another response
-        </button>
       </div>
     );
   }
 
   return (
     <div className="p-4 md:p-8">
+      {readOnly && (
+        <div className="max-w-6xl mx-auto mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center text-amber-800">
+            <AlertCircle className="w-5 h-5 mr-2" />
+            <span className="font-medium">This survey has expired. You are viewing it in Read-Only mode.</span>
+        </div>
+      )}
+      
       <SurveyForm 
         survey={survey}
         answers={answers}
@@ -167,6 +172,7 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
         onAnswerChange={handleAnswerChange}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        readOnly={readOnly}
       />
     </div>
   );

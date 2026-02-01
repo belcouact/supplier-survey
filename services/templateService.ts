@@ -1,15 +1,19 @@
 
 import { supabase } from './supabaseClient';
 import { SurveySchema } from '../types';
+import { generateShortId } from '../utils/helpers';
 
 export async function saveSurveyTemplate(survey: SurveySchema) {
+  const shortId = generateShortId();
   const { data, error } = await supabase
     .from('templates')
     .insert([
       {
         title: survey.title.en, // Use EN title for the main column for easier searching/listing if schema is JSON
         description: survey.description.en,
-        schema: survey, // Stores the full multilingual JSON
+        schema: { ...survey, short_id: shortId }, // Stores the full multilingual JSON
+        short_id: shortId,
+        expiration_date: survey.expiration_date,
         created_at: new Date().toISOString(),
       },
     ])
@@ -30,6 +34,7 @@ export async function updateSurveyTemplate(id: string, survey: SurveySchema) {
         title: survey.title.en,
         description: survey.description.en,
         schema: survey,
+        expiration_date: survey.expiration_date,
     })
     .eq('id', id)
     .select();
@@ -41,6 +46,22 @@ export async function updateSurveyTemplate(id: string, survey: SurveySchema) {
 
   return data;
 }
+
+export async function getTemplateByShortId(shortId: string) {
+  const { data, error } = await supabase
+    .from('templates')
+    .select('*')
+    .eq('short_id', shortId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Error fetching template by short ID:', error);
+    return null;
+  }
+
+  return data;
+}
+
 
 export async function getTemplates() {
   const { data, error } = await supabase
@@ -106,6 +127,10 @@ export async function duplicateTemplate(originalTemplate: any) {
   // Deep copy the schema
   const newSchema = JSON.parse(JSON.stringify(originalTemplate.schema));
   
+  // Generate new short ID
+  const shortId = generateShortId();
+  newSchema.short_id = shortId;
+
   // Modify titles to indicate copy
   if (typeof newSchema.title === 'string') {
       newSchema.title = `Copy of ${newSchema.title}`;
@@ -124,6 +149,8 @@ export async function duplicateTemplate(originalTemplate: any) {
         title: typeof newSchema.title === 'string' ? newSchema.title : newSchema.title.en,
         description: typeof newSchema.description === 'string' ? newSchema.description : newSchema.description.en,
         schema: newSchema,
+        short_id: shortId,
+        expiration_date: originalTemplate.expiration_date,
         created_at: new Date().toISOString(),
       },
     ])
