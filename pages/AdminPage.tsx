@@ -711,9 +711,8 @@ export function AdminPage({ user }: AdminPageProps) {
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 text-gray-500 font-medium">
                                             <tr>
-                                                <th className="px-6 py-3">Respondent</th>
                                                 <th className="px-6 py-3">Email</th>
-                                                <th className="px-6 py-3">Date</th>
+                                                <th className="px-6 py-3">Submit Date</th>
                                                 <th className="px-6 py-3">Actions</th>
                                             </tr>
                                         </thead>
@@ -721,10 +720,9 @@ export function AdminPage({ user }: AdminPageProps) {
                                             {analyticsResults.map((result) => (
                                                 <tr key={result.id} className="hover:bg-gray-50">
                                                     <td className="px-6 py-3 font-medium text-gray-900">
-                                                        {result.user_id === 'anonymous' ? 'Anonymous User' : result.user_id}
-                                                    </td>
-                                                    <td className="px-6 py-3 text-gray-500">
-                                                        {users.find(u => u.id === result.user_id)?.email || '-'}
+                                                        {result.user_id === 'anonymous' 
+                                                            ? 'Anonymous' 
+                                                            : (users.find(u => u.id === result.user_id)?.email || result.user_id)}
                                                     </td>
                                                     <td className="px-6 py-3 text-gray-500">
                                                         {new Date(result.updated_at).toLocaleString()}
@@ -1397,7 +1395,7 @@ export function AdminPage({ user }: AdminPageProps) {
                         <div className="flex gap-4 mt-2 text-sm text-gray-500">
                             <span>User: {viewingResult.user_id === 'anonymous' ? 'Anonymous' : viewingResult.user_id}</span>
                             <span>Email: {users.find(u => u.id === viewingResult.user_id)?.email || '-'}</span>
-                            <span>Date: {new Date(viewingResult.updated_at).toLocaleString()}</span>
+                            <span>Submit Date: {new Date(viewingResult.updated_at).toLocaleString()}</span>
                         </div>
                     </div>
 
