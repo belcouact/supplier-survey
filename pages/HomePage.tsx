@@ -11,8 +11,11 @@ interface HomePageProps {
 
 export function HomePage({ user }: HomePageProps) {
   const [participatedSurveys, setParticipatedSurveys] = useState<SurveyTemplate[]>([]);
+  const [availableSurveys, setAvailableSurveys] = useState<SurveyTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   useEffect(() => {
     if (user) {
@@ -22,17 +25,29 @@ export function HomePage({ user }: HomePageProps) {
 
   const loadParticipatedSurveys = async () => {
     setLoading(true);
+    setDebugInfo('');
     try {
+      console.log('Fetching results for user:', user.id);
       const results = await getUserResults(user.id);
+      console.log('Results:', results);
+      
+      const allTemplates = await getTemplates();
+      console.log('All Templates:', allTemplates);
+      setAvailableSurveys(allTemplates);
+
+      setDebugInfo(`User: ${user.id}, Results: ${results.length}, Templates: ${allTemplates.length}`);
+
       if (results.length > 0) {
-        // Fetch all templates (optimization: could fetch only specific IDs if API supported it)
-        const allTemplates = await getTemplates();
         const participatedIds = new Set(results.map(r => r.template_id));
         const filtered = allTemplates.filter(t => participatedIds.has(t.id));
+        console.log('Filtered:', filtered);
         setParticipatedSurveys(filtered);
+      } else {
+        setParticipatedSurveys([]);
       }
     } catch (err) {
       console.error('Failed to load surveys', err);
+      setDebugInfo(`Error: ${JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
@@ -82,8 +97,56 @@ export function HomePage({ user }: HomePageProps) {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
       ) : participatedSurveys.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
-          <p className="text-slate-500 text-lg">You haven't participated in any surveys yet.</p>
+        <div className="space-y-8">
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
+            <p className="text-slate-500 text-lg">You haven't participated in any surveys yet.</p>
+            <div className="mt-4 p-4 bg-gray-50 rounded text-left inline-block max-w-lg">
+               <p className="text-xs text-gray-500 font-mono mb-1">Debug Info:</p>
+               <pre className="text-xs text-gray-400 font-mono overflow-auto">{debugInfo}</pre>
+            </div>
+          </div>
+
+          {availableSurveys.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold text-slate-800 mb-4">Available Surveys</h3>
+              <p className="text-slate-600 mb-4">Select a survey to start or continue (if previously saved while logged in).</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {availableSurveys.map(survey => {
+                  const expired = isExpired(survey.expiration_date);
+                  return (
+                    <div 
+                      key={survey.id}
+                      onClick={() => handleCardClick(survey)}
+                      className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 relative group overflow-hidden`}
+                    >
+                      <div className={`absolute top-0 left-0 px-3 py-1 text-xs font-semibold rounded-br-lg ${
+                        expired 
+                          ? 'bg-red-100 text-red-700' 
+                          : 'bg-green-100 text-green-700'
+                      }`}>
+                        {expired ? 'Expired' : 'Open'}
+                      </div>
+
+                      <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2 line-clamp-2">
+                        {getText(survey.title)}
+                      </h3>
+                      
+                      <p className="text-slate-600 text-sm mb-4 line-clamp-3">
+                        {getText(survey.description)}
+                      </p>
+
+                      <div className="flex items-center text-xs text-slate-500 mt-auto pt-4 border-t border-slate-100">
+                        <Clock className="w-3 h-3 mr-1" />
+                        <span>
+                          {expired ? 'Review Only' : 'Click to Start'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
