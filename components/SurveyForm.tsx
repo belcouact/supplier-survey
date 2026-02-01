@@ -253,6 +253,13 @@ export function SurveyForm({
                     })}
                   </div>
                 )}
+
+                {/* Description (Informational Text) */}
+                {q.type === 'description' && (
+                  <div className="text-gray-600 leading-relaxed whitespace-pre-wrap text-base">
+                    {getText(q.default_value) || getText(q.placeholder)}
+                  </div>
+                )}
               </div>
             </div>
           ))}

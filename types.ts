@@ -1,4 +1,4 @@
-export type QuestionType = 'short_text' | 'long_text' | 'single_choice' | 'multiple_choice' | 'number';
+export type QuestionType = 'short_text' | 'long_text' | 'single_choice' | 'multiple_choice' | 'number' | 'description';
 
 export interface SurveyOption {
   label: string;
@@ -12,6 +12,7 @@ export interface SurveyQuestion {
   options?: SurveyOption[]; // For single/multiple choice
   required?: boolean;
   placeholder?: string;
+  default_value?: string;
 }
 
 export interface SurveySection {
