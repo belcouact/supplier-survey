@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
-import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
+import { generateSurvey, refineSurvey, getAvailableModels, analyzeSurveyResults } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
   PieChart, Pie, Cell,
@@ -33,6 +33,11 @@ export function AdminPage({ user }: AdminPageProps) {
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
   const [shareSurvey, setShareSurvey] = useState<SurveyTemplate | null>(null);
+
+  // --- Analysis State ---
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<string | null>(null);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
 
   // --- User Management State ---
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -68,6 +73,24 @@ export function AdminPage({ user }: AdminPageProps) {
         console.error(err);
     } finally {
         setIsLoadingUsers(false);
+    }
+  };
+
+  const handleAnalyzeResults = async () => {
+    const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+    if (!template) return;
+    
+    setIsAnalyzing(true);
+    try {
+        // We might want to filter results or limit them if there are too many
+        const result = await analyzeSurveyResults(template, analyticsResults, selectedModel);
+        setAnalysisResult(result);
+        setShowAnalysisModal(true);
+    } catch (err) {
+        console.error(err);
+        alert('Failed to analyze results');
+    } finally {
+        setIsAnalyzing(false);
     }
   };
 
@@ -693,25 +716,36 @@ export function AdminPage({ user }: AdminPageProps) {
                             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                                 <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                                     <h3 className="font-bold text-gray-800">Response History</h3>
-                                    <button 
-                                        onClick={() => {
-                                            const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
-                                            const userEmailMap = users.reduce((acc, u) => ({ ...acc, [u.id]: u.email }), {} as Record<string, string>);
-                                            if (template) exportSurveyResultsToCSV(analyticsResults, template, userEmailMap);
-                                        }}
-                                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                        disabled={analyticsResults.length === 0}
-                                        title="Download results as CSV"
-                                    >
-                                        <Download size={16} />
-                                        Export CSV
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={handleAnalyzeResults}
+                                            disabled={analyticsResults.length === 0 || isAnalyzing}
+                                            className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isAnalyzing ? 'animate-pulse' : ''}`}
+                                            title="Analyze results with AI"
+                                        >
+                                            <Brain size={16} />
+                                            {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+                                                const userEmailMap = users.reduce((acc, u) => ({ ...acc, [u.id]: u.email }), {} as Record<string, string>);
+                                                if (template) exportSurveyResultsToCSV(analyticsResults, template, userEmailMap);
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled={analyticsResults.length === 0}
+                                            title="Download results as CSV"
+                                        >
+                                            <Download size={16} />
+                                            Export CSV
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 text-gray-500 font-medium">
                                             <tr>
-                                                <th className="px-6 py-3">Email</th>
+                                                <th className="px-6 py-3">ID/Email</th>
                                                 <th className="px-6 py-3">Submit Date</th>
                                                 <th className="px-6 py-3">Actions</th>
                                             </tr>
@@ -1465,6 +1499,43 @@ export function AdminPage({ user }: AdminPageProps) {
                                 Copy
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Analysis Modal */}
+        {showAnalysisModal && (
+            <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col relative overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-purple-50 to-white">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
+                                <Brain size={24} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">AI Analysis Report</h2>
+                        </div>
+                        <button 
+                            onClick={() => setShowAnalysisModal(false)}
+                            className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                        <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-gray-800 prose-p:text-gray-600 prose-li:text-gray-600 prose-strong:text-gray-900">
+                            <ReactMarkdown>{analysisResult || ''}</ReactMarkdown>
+                        </div>
+                    </div>
+
+                    <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                        <button
+                            onClick={() => setShowAnalysisModal(false)}
+                            className="px-6 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium shadow-sm"
+                        >
+                            Close
+                        </button>
                     </div>
                 </div>
             </div>

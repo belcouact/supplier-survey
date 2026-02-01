@@ -117,10 +117,38 @@ Return ONLY the JSON object.`;
   return callAI<{ updatedSurvey: SurveySchema | null, responseMessage: string }>(messages, REFINEMENT_SYSTEM_INSTRUCTION, model);
 }
 
+const ANALYSIS_SYSTEM_INSTRUCTION = `You are an expert Supply Chain Auditor.
+Your goal is to evaluate the provided survey results against the survey questions.
+Provide a comprehensive analysis of the respondent's answers, highlighting strengths, weaknesses, and potential risks.
+
+Rules:
+1. You will receive the "Survey Template" (questions) and the "Survey Results" (answers).
+2. Analyze the answers in the context of the questions.
+3. Identify any red flags, compliance issues, or areas of concern.
+4. Highlight positive aspects and compliance strengths.
+5. Provide a summary recommendation (e.g., "Approved", "Conditional Approval", "Audit Required", "Rejected").
+6. Format your response in clean, structured Markdown. Use headers, bullet points, and bold text for readability.
+7. Do NOT return JSON. Return only the Markdown text.
+`;
+
+/**
+ * Analyzes survey results using AI.
+ */
+export async function analyzeSurveyResults(template: any, results: any[], model: string = 'deepseek'): Promise<string> {
+  const prompt = `Survey Template: ${JSON.stringify(template)}
+  
+  Survey Results: ${JSON.stringify(results)}
+  
+  Please provide a detailed analysis of these results.`;
+
+  const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+  return callAI<string>(messages, ANALYSIS_SYSTEM_INSTRUCTION, model, false);
+}
+
 /**
  * Common AI call handler
  */
-async function callAI<T>(messages: ChatMessage[], systemInstruction: string, model: string = 'deepseek'): Promise<T> {
+async function callAI<T>(messages: ChatMessage[], systemInstruction: string, model: string = 'deepseek', jsonMode: boolean = true): Promise<T> {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -152,6 +180,10 @@ async function callAI<T>(messages: ChatMessage[], systemInstruction: string, mod
     } else {
        console.log('Unknown response format:', data);
        throw new Error('Unknown response format from API');
+    }
+
+    if (!jsonMode) {
+      return content as T;
     }
 
     // Extract JSON from the response
