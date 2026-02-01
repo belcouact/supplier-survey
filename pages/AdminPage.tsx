@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateSurvey, refineSurvey, getAvailableModels, analyzeSurveyResults, chatWithSurveyResults } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
@@ -9,12 +8,6 @@ import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import {
-  PieChart, Pie, Cell,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 interface AdminPageProps {
   user: any;
@@ -82,7 +75,7 @@ export function AdminPage({ user }: AdminPageProps) {
   };
 
   const handleAnalyzeResults = async () => {
-    const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+    const template = templates.find(t => String(t.id) === selectedAnalyticsTemplateId);
     if (!template) return;
     
     setIsAnalyzing(true);
@@ -99,11 +92,11 @@ export function AdminPage({ user }: AdminPageProps) {
     }
   };
 
-  const handleResultChatSubmit = async (e: React.FormEvent) => {
+  const handleResultChatSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!resultChatInput.trim() || isResultChatLoading) return;
 
-    const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+    const template = templates.find(t => String(t.id) === selectedAnalyticsTemplateId);
     if (!template) return;
 
     const userMessage = resultChatInput;
@@ -180,7 +173,6 @@ export function AdminPage({ user }: AdminPageProps) {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   // --- Editing State ---
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -217,7 +209,7 @@ export function AdminPage({ user }: AdminPageProps) {
 
   useEffect(() => {
       if (activeTab === 'analytics' && templates.length > 0 && !selectedAnalyticsTemplateId) {
-          setSelectedAnalyticsTemplateId(templates[0].id);
+          setSelectedAnalyticsTemplateId(String(templates[0].id));
       }
   }, [activeTab, templates]);
 
@@ -355,7 +347,7 @@ export function AdminPage({ user }: AdminPageProps) {
     }
   };
 
-  const handleChatSubmit = async (e?: React.FormEvent) => {
+  const handleChatSubmit = async (e?: React.FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!chatInput.trim() || !generatedSurvey) return;
 
@@ -692,7 +684,7 @@ export function AdminPage({ user }: AdminPageProps) {
                             <Copy size={18} />
                         </button>
                         <button 
-                            onClick={(e) => handleDeleteTemplate(e, template.id)}
+                            onClick={(e) => handleDeleteTemplate(e, String(template.id))}
                             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                             title="Delete Template"
                         >
@@ -774,7 +766,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                         </button>
                                         <button 
                                             onClick={() => {
-                                                const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+                                                const template = templates.find(t => String(t.id) === selectedAnalyticsTemplateId);
                                                 const userEmailMap = users.reduce((acc, u) => ({ ...acc, [u.id]: u.email }), {} as Record<string, string>);
                                                 if (template) exportSurveyResultsToCSV(analyticsResults, template, userEmailMap);
                                             }}

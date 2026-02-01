@@ -41,8 +41,8 @@ export interface ChatMessage {
 }
 
 export interface SurveyResult {
-  id?: string;
-  template_id: string;
+  id?: string | number;
+  template_id: string | number;
   user_id: string | null; // null for anonymous, UUID for authenticated
   answers: SurveyAnswers;
   updated_at?: string;
@@ -59,7 +59,7 @@ export interface UserProfile {
 }
 
 export interface SurveyTemplate {
-  id: string;
+  id: string | number;
   short_id?: string;
   title: string;
   description: string;
