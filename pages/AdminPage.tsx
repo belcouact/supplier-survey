@@ -1466,7 +1466,7 @@ export function AdminPage({ user }: AdminPageProps) {
         {/* Viewing Result Modal */}
         {viewingResult && (
             <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-                <div className="bg-white w-full h-full md:w-[95vw] md:h-[95vh] md:rounded-2xl shadow-2xl overflow-hidden flex flex-col relative">
+                <div className="bg-white w-full h-full shadow-2xl overflow-hidden flex flex-col relative">
                      <button 
                         onClick={() => setViewingResult(null)}
                         className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full p-1"
