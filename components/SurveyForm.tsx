@@ -267,27 +267,28 @@ export function SurveyForm({
       </div>
 
       {/* Navigation Footer */}
-      <div className="flex items-center justify-between pt-6 pb-12">
+      <div className="flex items-center justify-between gap-2 md:gap-4 pt-6 pb-12">
         <button
           type="button"
           onClick={handlePrev}
           disabled={currentStep === 0}
-          className={`flex items-center px-6 py-3 rounded-xl font-medium transition-all
+          className={`flex-1 flex items-center justify-center px-2 md:px-6 py-3 rounded-xl font-medium transition-all
             ${currentStep === 0 
               ? 'text-gray-300 cursor-not-allowed' 
               : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 shadow-sm hover:shadow'}`}
         >
-          <ChevronLeft size={20} className="mr-2" />
-          Previous
+          <ChevronLeft size={20} className="mr-1 md:mr-2" />
+          <span className="hidden sm:inline">Previous</span>
+          <span className="inline sm:hidden">Prev</span>
         </button>
 
         {!readOnly && onSave && (
           <button
             type="button"
             onClick={onSave}
-            className="flex items-center px-4 md:px-6 py-3 rounded-xl font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 shadow-sm transition-all hover:shadow-md active:scale-95"
+            className="flex-1 flex items-center justify-center px-2 md:px-6 py-3 rounded-xl font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 shadow-sm transition-all hover:shadow-md active:scale-95"
           >
-            <Save size={20} className="mr-2" />
+            <Save size={20} className="mr-1 md:mr-2" />
             <span className="hidden sm:inline">Save Progress</span>
             <span className="inline sm:hidden">Save</span>
           </button>
@@ -297,20 +298,22 @@ export function SurveyForm({
           <button
             type="button"
             onClick={handleNext}
-            className="flex items-center px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="flex-1 flex items-center justify-center px-2 md:px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
-            Next Section
-            <ChevronRight size={20} className="ml-2" />
+            <span className="hidden sm:inline">Next Section</span>
+            <span className="inline sm:hidden">Next</span>
+            <ChevronRight size={20} className="ml-1 md:ml-2" />
           </button>
         ) : (
           !readOnly && (
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex items-center px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="flex-1 flex items-center justify-center px-2 md:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Survey'}
-              <Check size={20} className="ml-2" />
+              <span className="hidden sm:inline">{isSubmitting ? 'Submitting...' : 'Submit Survey'}</span>
+              <span className="inline sm:hidden">{isSubmitting ? 'Sending...' : 'Submit'}</span>
+              <Check size={20} className="ml-1 md:ml-2" />
             </button>
           )
         )}
