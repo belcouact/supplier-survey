@@ -32,7 +32,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
   const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareSurvey, setShareSurvey] = useState<SurveyTemplate | null>(null);
 
   // --- User Management State ---
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -433,9 +433,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
     pushToHistory();
     const sections = generatedSurvey.sections.map(section => {
       if (section.id === editingSectionId) {
-        const newTitle: LocalizedText = typeof section.title === 'string' 
-            ? { en: tempSectionTitle, sc: tempSectionTitle, tc: tempSectionTitle }
-            : { ...section.title, [language]: tempSectionTitle };
+        const newTitle: LocalizedText = { en: tempSectionTitle, sc: tempSectionTitle, tc: tempSectionTitle };
         return { ...section, title: newTitle };
       }
       return section;
@@ -621,6 +619,14 @@ export function AdminPage({ language, user }: AdminPageProps) {
                     {templates.map((template) => (
                   <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
                     <div className="absolute top-4 right-4 flex gap-1 z-10">
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setShareSurvey(template); }}
+                            className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors"
+                            title="Share Survey"
+                            disabled={!template.short_id}
+                        >
+                            <Share2 size={18} />
+                        </button>
                         <button 
                             onClick={(e) => handleDuplicateTemplate(e, template)}
                             className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full transition-colors"
@@ -975,19 +981,6 @@ export function AdminPage({ language, user }: AdminPageProps) {
                         </button>
 
                         <button 
-                            onClick={() => setShowShareModal(true)}
-                            disabled={!generatedSurvey.short_id}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
-                                ${!generatedSurvey.short_id
-                                    ? 'text-gray-300 cursor-not-allowed bg-gray-50 border border-gray-200'
-                                    : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'}`}
-                            title={!generatedSurvey.short_id ? "Save template to enable sharing" : "Share Survey"}
-                        >
-                            <Share2 size={18} />
-                            Share
-                        </button>
-
-                        <button 
                             onClick={handleSaveTemplate}
                             disabled={isSaving}
                             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm"
@@ -1175,7 +1168,10 @@ export function AdminPage({ language, user }: AdminPageProps) {
                                                 <label className="text-xs font-bold text-gray-500 uppercase">Question Text</label>
                                                 <input 
                                                     value={getText(tempQuestion.text)}
-                                                    onChange={(e) => updateTempQuestion('text', { ...tempQuestion.text, [language]: e.target.value })}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        updateTempQuestion('text', { en: val, sc: val, tc: val });
+                                                    }}
                                                     className="w-full p-2 border rounded"
                                                 />
                                             </div>
@@ -1310,11 +1306,11 @@ export function AdminPage({ language, user }: AdminPageProps) {
         )}
 
         {/* Share Modal */}
-        {showShareModal && generatedSurvey && generatedSurvey.short_id && (
+        {shareSurvey && shareSurvey.short_id && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
                     <button 
-                        onClick={() => setShowShareModal(false)}
+                        onClick={() => setShareSurvey(null)}
                         className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
                     >
                         <X size={24} />
@@ -1325,7 +1321,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
                     <div className="flex flex-col items-center space-y-6">
                         <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-200">
                              <QRCodeCanvas 
-                                value={`${window.location.origin}/survey/${generatedSurvey.short_id}`} 
+                                value={`${window.location.origin}/${shareSurvey.short_id}`} 
                                 size={200}
                                 level={"H"}
                                 includeMargin={true}
@@ -1337,12 +1333,12 @@ export function AdminPage({ language, user }: AdminPageProps) {
                             <div className="flex gap-2">
                                 <input 
                                     readOnly 
-                                    value={`${window.location.origin}/survey/${generatedSurvey.short_id}`}
+                                    value={`${window.location.origin}/${shareSurvey.short_id}`}
                                     className="flex-1 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600 focus:outline-none font-mono"
                                 />
                                 <button
                                     onClick={() => {
-                                        navigator.clipboard.writeText(`${window.location.origin}/survey/${generatedSurvey.short_id}`);
+                                        navigator.clipboard.writeText(`${window.location.origin}/${shareSurvey.short_id}`);
                                         alert('Link copied to clipboard!');
                                     }}
                                     className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
