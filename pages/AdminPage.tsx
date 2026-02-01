@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { QRCodeCanvas } from 'qrcode.react';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
 import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight, Users, Calendar } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight, Users, Calendar, Share2, Link as LinkIcon } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import {
   PieChart, Pie, Cell,
@@ -31,6 +32,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
   const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // --- User Management State ---
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -533,13 +535,17 @@ export function AdminPage({ language, user }: AdminPageProps) {
     try {
       setIsSaving(true);
       if (editingTemplateId) {
-          await updateSurveyTemplate(editingTemplateId, generatedSurvey);
+          const updatedData = await updateSurveyTemplate(editingTemplateId, generatedSurvey);
+          // Manually update local state to ensure it reflects immediately
+          if (updatedData && updatedData.length > 0) {
+              setTemplates(prev => prev.map(t => t.id === editingTemplateId ? updatedData[0] : t));
+          }
           alert('Template updated successfully!');
       } else {
           await saveSurveyTemplate(generatedSurvey);
           alert('Template saved successfully!');
       }
-      loadTemplates();
+      await loadTemplates();
     } catch (err) {
       alert('Failed to save template.');
       console.error(err);
@@ -969,6 +975,19 @@ export function AdminPage({ language, user }: AdminPageProps) {
                         </button>
 
                         <button 
+                            onClick={() => setShowShareModal(true)}
+                            disabled={!generatedSurvey.short_id}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
+                                ${!generatedSurvey.short_id
+                                    ? 'text-gray-300 cursor-not-allowed bg-gray-50 border border-gray-200'
+                                    : 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100'}`}
+                            title={!generatedSurvey.short_id ? "Save template to enable sharing" : "Share Survey"}
+                        >
+                            <Share2 size={18} />
+                            Share
+                        </button>
+
+                        <button 
                             onClick={handleSaveTemplate}
                             disabled={isSaving}
                             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm"
@@ -1285,6 +1304,58 @@ export function AdminPage({ language, user }: AdminPageProps) {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Share Modal */}
+        {showShareModal && generatedSurvey && generatedSurvey.short_id && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+                    <button 
+                        onClick={() => setShowShareModal(false)}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                    >
+                        <X size={24} />
+                    </button>
+                    
+                    <h2 className="text-2xl font-bold text-slate-900 mb-6 text-center">Share Survey</h2>
+                    
+                    <div className="flex flex-col items-center space-y-6">
+                        <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-200">
+                             <QRCodeCanvas 
+                                value={`${window.location.origin}/survey/${generatedSurvey.short_id}`} 
+                                size={200}
+                                level={"H"}
+                                includeMargin={true}
+                             />
+                        </div>
+                        
+                        <div className="w-full space-y-2">
+                            <label className="text-sm font-medium text-gray-700 block">Survey URL</label>
+                            <div className="flex gap-2">
+                                <input 
+                                    readOnly 
+                                    value={`${window.location.origin}/survey/${generatedSurvey.short_id}`}
+                                    className="flex-1 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600 focus:outline-none font-mono"
+                                />
+                                <button
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(`${window.location.origin}/survey/${generatedSurvey.short_id}`);
+                                        alert('Link copied to clipboard!');
+                                    }}
+                                    className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
+                                    title="Copy Link"
+                                >
+                                    <Copy size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="text-center text-sm text-gray-500 px-4">
+                            <p>Share this QR code or link with suppliers to start collecting responses directly.</p>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -27,6 +27,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Super admin can do anything
+DROP POLICY IF EXISTS "Super admin can do all on user_roles" ON user_roles;
 CREATE POLICY "Super admin can do all on user_roles" ON user_roles
   FOR ALL USING (public.is_super_admin());
 
@@ -75,6 +76,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Users can read their own role
+DROP POLICY IF EXISTS "Users can read own role" ON user_roles;
 CREATE POLICY "Users can read own role" ON user_roles
   FOR SELECT USING (auth.uid() = id);
 
