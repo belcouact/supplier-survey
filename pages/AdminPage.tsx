@@ -1384,7 +1384,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     <div className="flex flex-col items-center gap-6 mb-6">
                         <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
                             <QRCodeCanvas 
-                                value={`${window.location.origin}/survey/${shareSurvey.short_id}`} 
+                                value={`https://study-llm.me/apps/survey-gen/${shareSurvey.short_id}`} 
                                 size={200}
                                 level="H"
                             />
@@ -1393,12 +1393,12 @@ export function AdminPage({ user }: AdminPageProps) {
                             <input 
                                 type="text" 
                                 readOnly
-                                value={`${window.location.origin}/survey/${shareSurvey.short_id}`}
+                                value={`https://study-llm.me/apps/survey-gen/${shareSurvey.short_id}`}
                                 className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none"
                             />
                             <button 
                                 onClick={() => {
-                                    navigator.clipboard.writeText(`${window.location.origin}/survey/${shareSurvey.short_id}`);
+                                    navigator.clipboard.writeText(`https://study-llm.me/apps/survey-gen/${shareSurvey.short_id}`);
                                     alert('Link copied to clipboard!');
                                 }}
                                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
