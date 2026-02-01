@@ -1145,6 +1145,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                                         <option value="number">Number</option>
                                                         <option value="single_choice">Single Choice</option>
                                                         <option value="multiple_choice">Multiple Choice</option>
+                                                        <option value="description">Description</option>
                                                     </select>
                                                 </div>
                                                 <div className="flex items-end pb-2">
@@ -1191,6 +1192,22 @@ export function AdminPage({ user }: AdminPageProps) {
                                                 </div>
                                             )}
 
+                                            {tempQuestion?.type === 'description' && (
+                                                <div className="mt-4">
+                                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Description Content</label>
+                                                    <textarea
+                                                        value={getText(tempQuestion?.default_value) || getText(tempQuestion?.placeholder)}
+                                                        onChange={(e) => {
+                                                            updateTempQuestion('default_value', e.target.value);
+                                                            // Also update placeholder for backward compatibility if needed
+                                                            updateTempQuestion('placeholder', e.target.value);
+                                                        }}
+                                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none min-h-[100px]"
+                                                        placeholder="Enter the description text here..."
+                                                    />
+                                                </div>
+                                            )}
+
                                             <div className="pt-2 flex justify-end gap-2">
                                                 <button 
                                                     onClick={handleSaveQuestion}
@@ -1228,6 +1245,11 @@ export function AdminPage({ user }: AdminPageProps) {
                                                                     <span className="text-gray-600">{getText(opt.label)}</span>
                                                                 </div>
                                                             ))}
+                                                        </div>
+                                                    )}
+                                                    {q.type === 'description' && (
+                                                        <div className="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm border-l-4 border-gray-300 pl-4 py-2 bg-gray-50 rounded-r-lg">
+                                                            {getText(q.default_value) || getText(q.placeholder) || <span className="text-gray-400 italic">No description text</span>}
                                                         </div>
                                                     )}
                                                 </div>
