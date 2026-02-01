@@ -1484,7 +1484,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
-                        {templates.find(t => t.id === selectedAnalyticsTemplateId)?.schema.sections.map((section) => (
+                        {templates.find(t => String(t.id) === selectedAnalyticsTemplateId)?.schema.sections.map((section) => (
                             <div key={section.id} className="border-b border-gray-100 pb-6 last:border-0">
                                 <h3 className="font-bold text-lg text-gray-800 mb-4 bg-blue-50 inline-block px-3 py-1 rounded-lg">
                                     {getText(section.title)}
