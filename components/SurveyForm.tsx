@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { SurveySchema, SurveyAnswers, QuestionType, Language, LocalizedText } from '../types';
+import { SurveySchema, SurveyAnswers, QuestionType } from '../types';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface SurveyFormProps {
   survey: SurveySchema;
   answers: SurveyAnswers;
-  language: Language;
   onAnswerChange: (qId: string, value: any, type: QuestionType) => void;
   onSubmit: (e: React.FormEvent) => void;
   isSubmitting?: boolean;
@@ -15,7 +14,6 @@ interface SurveyFormProps {
 export function SurveyForm({ 
   survey, 
   answers, 
-  language, 
   onAnswerChange, 
   onSubmit,
   isSubmitting = false,
@@ -28,13 +26,14 @@ export function SurveyForm({
     setCurrentStep(0);
   }, [survey.id]);
 
-  const getText = (content: LocalizedText | string | undefined): string => {
+  // Helper to handle legacy multilingual data if present
+  const getText = (content: any): string => {
     if (!content) return '';
     if (typeof content === 'string') return content;
-    return content[language] || content.en || '';
+    // Fallback for legacy data structure { en: "...", sc: "...", tc: "..." }
+    return content.en || Object.values(content)[0] as string || '';
   };
 
-  const fontClass = language === Language.SC ? 'font-sc' : language === Language.TC ? 'font-tc' : 'font-sans';
   const totalSteps = survey.sections.length;
   const progress = Math.round(((currentStep + 1) / totalSteps) * 100);
 
@@ -74,7 +73,7 @@ export function SurveyForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className={`max-w-6xl mx-auto space-y-8 animate-fade-in ${fontClass}`}>
+    <form onSubmit={onSubmit} className="max-w-6xl mx-auto space-y-8 animate-fade-in font-sans">
       
       {/* Header & Progress */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 mb-8">

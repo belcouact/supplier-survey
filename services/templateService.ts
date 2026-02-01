@@ -9,9 +9,9 @@ export async function saveSurveyTemplate(survey: SurveySchema) {
     .from('templates')
     .insert([
       {
-        title: survey.title.en, // Use EN title for the main column for easier searching/listing if schema is JSON
-        description: survey.description.en,
-        schema: { ...survey, short_id: shortId }, // Stores the full multilingual JSON
+        title: survey.title,
+        description: survey.description,
+        schema: { ...survey, short_id: shortId },
         short_id: shortId,
         expiration_date: survey.expiration_date,
         created_at: new Date().toISOString(),
@@ -31,8 +31,8 @@ export async function updateSurveyTemplate(id: string, survey: SurveySchema) {
   const { data, error } = await supabase
     .from('templates')
     .update({
-        title: survey.title.en,
-        description: survey.description.en,
+        title: survey.title,
+        description: survey.description,
         schema: survey,
         expiration_date: survey.expiration_date,
     })
@@ -100,22 +100,32 @@ export async function duplicateTemplate(originalTemplate: any) {
   newSchema.short_id = shortId;
 
   // Modify titles to indicate copy
+  // Check if title is string (new format) or object (legacy format)
   if (typeof newSchema.title === 'string') {
       newSchema.title = `Copy of ${newSchema.title}`;
+  } else if (newSchema.title && typeof newSchema.title === 'object') {
+      // Handle legacy localized title
+      const enTitle = newSchema.title.en || Object.values(newSchema.title)[0] || 'Untitled';
+      newSchema.title = `Copy of ${enTitle}`;
   } else {
-      newSchema.title = {
-          en: `Copy of ${newSchema.title.en || ''}`,
-          sc: `Copy of ${newSchema.title.sc || ''}`,
-          tc: `Copy of ${newSchema.title.tc || ''}`,
-      };
+      newSchema.title = 'Copy of Untitled';
+  }
+
+  // Handle description similarly
+  if (typeof newSchema.description !== 'string') {
+       if (newSchema.description && typeof newSchema.description === 'object') {
+           newSchema.description = newSchema.description.en || Object.values(newSchema.description)[0] || '';
+       } else {
+           newSchema.description = '';
+       }
   }
 
   const { data, error } = await supabase
     .from('templates')
     .insert([
       {
-        title: typeof newSchema.title === 'string' ? newSchema.title : newSchema.title.en,
-        description: typeof newSchema.description === 'string' ? newSchema.description : newSchema.description.en,
+        title: newSchema.title,
+        description: newSchema.description,
         schema: newSchema,
         short_id: shortId,
         expiration_date: originalTemplate.expiration_date,
@@ -136,19 +146,8 @@ export async function updateTemplateTitle(id: string, newTitle: string, schema: 
     // Update both the top-level title column AND the schema title
     const updatedSchema = {
         ...schema,
-        title: {
-            ...schema.title,
-            en: newTitle, // Assuming we just update EN for simplicity or we need to know language. 
-                          // Actually, for a simple rename, we usually just update the EN or main title.
-                          // But if we want to be consistent, we might want to update the current language's title.
-                          // For the 'templates' table 'title' column, we'll use the new string.
-        }
+        title: newTitle
     };
-    
-    // We should probably update the specific language in schema if we knew it, 
-    // but the user just said "rename template".
-    // Let's assume the user is editing the 'display title'. 
-    // Since the prompt is "rename template", it usually implies the file name/display name.
     
     const { data, error } = await supabase
       .from('templates')

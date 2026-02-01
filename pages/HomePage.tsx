@@ -2,15 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
-import { SurveyResult, SurveyTemplate, Language } from '../types';
+import { SurveyResult, SurveyTemplate } from '../types';
 import { ClipboardList, Clock, AlertCircle } from 'lucide-react';
 
 interface HomePageProps {
   user: any;
-  language: Language;
 }
 
-export function HomePage({ user, language }: HomePageProps) {
+export function HomePage({ user }: HomePageProps) {
   const [participatedSurveys, setParticipatedSurveys] = useState<SurveyTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();

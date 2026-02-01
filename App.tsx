@@ -6,26 +6,12 @@ import { AdminPage } from './pages/AdminPage';
 import { SurveyPage } from './pages/SurveyPage';
 import { HomePage } from './pages/HomePage';
 import { supabase } from './services/supabaseClient';
-import { Language } from './types';
 
 export default function App() {
-  const [language, setLanguage] = useState<Language>(Language.EN);
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [defaultAuthEmail, setDefaultAuthEmail] = useState('');
-
-  // --- Auto-detect Language ---
-  useEffect(() => {
-    const browserLang = navigator.language.toLowerCase();
-    if (browserLang.includes('zh-tw') || browserLang.includes('zh-hk')) {
-      setLanguage(Language.TC);
-    } else if (browserLang.includes('zh')) {
-      setLanguage(Language.SC);
-    } else {
-      setLanguage(Language.EN);
-    }
-  }, []);
 
   // --- Auth Listener ---
   useEffect(() => {
@@ -101,8 +87,6 @@ export default function App() {
         <Navbar 
           user={user} 
           isAdmin={isAdmin}
-          language={language}
-          onLanguageChange={setLanguage}
           onOpenAuth={handleOpenAuth}
           onOpenAdminAuth={handleOpenAdminAuth}
           onLogout={handleLogout}
@@ -116,11 +100,11 @@ export default function App() {
         />
 
         <Routes>
-          <Route path="/" element={<HomePage user={user} language={language} />} />
-          <Route path="/:shortId" element={<SurveyPage language={language} user={user} />} />
+          <Route path="/" element={<HomePage user={user} />} />
+          <Route path="/:shortId" element={<SurveyPage user={user} />} />
           <Route 
             path="/admin" 
-            element={isAdmin ? <AdminPage language={language} user={user} /> : <Navigate to="/" replace />} 
+            element={isAdmin ? <AdminPage user={user} /> : <Navigate to="/" replace />} 
           />
         </Routes>
       </div>

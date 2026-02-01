@@ -1,18 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogIn, LogOut, Settings, ClipboardList, Globe } from 'lucide-react';
-import { Language } from '../types';
+import { User, LogIn, LogOut, Settings, ClipboardList } from 'lucide-react';
 
 interface NavbarProps {
   user: any;
   isAdmin: boolean;
-  language: Language;
-  onLanguageChange: (lang: Language) => void;
   onOpenAuth: () => void;
   onOpenAdminAuth: () => void;
   onLogout: () => void;
 }
 
-export function Navbar({ user, isAdmin, language, onLanguageChange, onOpenAuth, onOpenAdminAuth, onLogout }: NavbarProps) {
+export function Navbar({ user, isAdmin, onOpenAuth, onOpenAdminAuth, onLogout }: NavbarProps) {
   const navigate = useNavigate();
 
   return (

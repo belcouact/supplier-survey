@@ -1,17 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { SurveyForm } from '../components/SurveyForm';
-import { Language, SurveySchema, SurveyAnswers, QuestionType } from '../types';
+import { SurveySchema, SurveyAnswers, QuestionType } from '../types';
 import { getSurveyResult, saveSurveyResult } from '../services/resultService';
 import { getTemplateByShortId } from '../services/templateService';
 import { AlertCircle } from 'lucide-react';
 
 interface SurveyPageProps {
-  language: Language;
   user: any;
 }
 
-export function SurveyPage({ language, user }: SurveyPageProps) {
+export function SurveyPage({ user }: SurveyPageProps) {
   const { shortId } = useParams<{ shortId: string }>();
   const [survey, setSurvey] = useState<SurveySchema | null>(null);
   const [answers, setAnswers] = useState<SurveyAnswers>({});
@@ -168,7 +167,6 @@ export function SurveyPage({ language, user }: SurveyPageProps) {
       <SurveyForm 
         survey={survey}
         answers={answers}
-        language={language}
         onAnswerChange={handleAnswerChange}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}

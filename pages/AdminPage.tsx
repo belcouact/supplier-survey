@@ -2,12 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
-import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, updateSurveyTemplate } from '../services/templateService';
+import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
-import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight, Users, Calendar, Share2, Link as LinkIcon } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2 } from 'lucide-react';
 import {
   PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -16,11 +15,10 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
 
 interface AdminPageProps {
-  language: Language;
   user: any;
 }
 
-export function AdminPage({ language, user }: AdminPageProps) {
+export function AdminPage({ user }: AdminPageProps) {
   // --- State ---
   const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users'>('create');
   const [userContext, setUserContext] = useState('');
@@ -112,19 +110,6 @@ export function AdminPage({ language, user }: AdminPageProps) {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const tabsContainerRef = useRef<HTMLDivElement>(null);
-
-  const scrollTabs = (direction: 'left' | 'right') => {
-    if (tabsContainerRef.current) {
-        const scrollAmount = 200;
-        const currentScroll = tabsContainerRef.current.scrollLeft;
-        const newScroll = direction === 'right' ? currentScroll + scrollAmount : currentScroll - scrollAmount;
-        
-        tabsContainerRef.current.scrollTo({
-            left: newScroll,
-            behavior: 'smooth'
-        });
-    }
-  };
 
   // --- Editing State ---
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
@@ -227,11 +212,12 @@ export function AdminPage({ language, user }: AdminPageProps) {
     setEditingQuestionId(null);
   };
 
-  // --- Helper: Get Localized Text ---
-  const getText = (content: LocalizedText | string | undefined): string => {
+  // --- Helper: Get Localized Text (Legacy Support) ---
+  const getText = (content: any): string => {
     if (!content) return '';
     if (typeof content === 'string') return content;
-    return content[language] || content.en || '';
+    // Fallback for legacy multilingual data structure { en: "...", sc: "...", tc: "..." }
+    return content.en || Object.values(content)[0] as string || '';
   };
 
   const renderAnswer = (question: SurveyQuestion, answer: any) => {
@@ -368,18 +354,10 @@ export function AdminPage({ language, user }: AdminPageProps) {
     if (!generatedSurvey) return;
     pushToHistory();
     
-    const newTitle: LocalizedText = typeof generatedSurvey.title === 'string'
-        ? { en: tempHeaderTitle, sc: tempHeaderTitle, tc: tempHeaderTitle }
-        : { ...generatedSurvey.title, [language]: tempHeaderTitle };
-
-    const newDesc: LocalizedText = typeof generatedSurvey.description === 'string'
-        ? { en: tempHeaderDesc, sc: tempHeaderDesc, tc: tempHeaderDesc }
-        : { ...generatedSurvey.description, [language]: tempHeaderDesc };
-
     setGeneratedSurvey({
         ...generatedSurvey,
-        title: newTitle,
-        description: newDesc,
+        title: tempHeaderTitle,
+        description: tempHeaderDesc,
         expiration_date: tempExpirationDate ? new Date(tempExpirationDate).toISOString() : undefined
     });
     setIsEditingHeader(false);
@@ -423,7 +401,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
     }
   };
 
-  const handleStartEdit = (sectionId: string, currentTitle: LocalizedText | string) => {
+  const handleStartEdit = (sectionId: string, currentTitle: any) => {
     setEditingSectionId(sectionId);
     setTempSectionTitle(getText(currentTitle));
   };
@@ -433,8 +411,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
     pushToHistory();
     const sections = generatedSurvey.sections.map(section => {
       if (section.id === editingSectionId) {
-        const newTitle: LocalizedText = { en: tempSectionTitle, sc: tempSectionTitle, tc: tempSectionTitle };
-        return { ...section, title: newTitle };
+        return { ...section, title: tempSectionTitle };
       }
       return section;
     });
@@ -505,7 +482,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
     const newOptions = [...tempQuestion.options];
     newOptions[idx] = { 
         ...newOptions[idx], 
-        label: { ...newOptions[idx].label, [language]: value } 
+        label: value 
     };
     if (!newOptions[idx].value || newOptions[idx].value === '') {
        newOptions[idx].value = value;
@@ -516,7 +493,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
   const addTempOption = () => {
     if (!tempQuestion) return;
     const newOptions = [...(tempQuestion.options || []), { 
-        label: { en: 'New Option', sc: '新选项', tc: '新選項' }, 
+        label: 'New Option', 
         value: `opt_${Date.now()}` 
     }];
     setTempQuestion({ ...tempQuestion, options: newOptions });
@@ -552,10 +529,8 @@ export function AdminPage({ language, user }: AdminPageProps) {
     }
   };
 
-  const fontClass = language === Language.SC ? 'font-sc' : language === Language.TC ? 'font-tc' : 'font-sans';
-
   return (
-    <div className={`flex-1 px-4 md:px-8 pb-4 md:pb-8 pt-2 md:pt-4 overflow-y-auto ${fontClass} ${isChatOpen ? 'mr-80 md:mr-96' : ''}`}>
+    <div className={`flex-1 px-4 md:px-8 pb-4 md:pb-8 pt-2 md:pt-4 overflow-y-auto font-sans ${isChatOpen ? 'mr-80 md:mr-96' : ''}`}>
       <div className="max-w-7xl mx-auto">
         
         {/* State: Template List */}
@@ -1034,164 +1009,161 @@ export function AdminPage({ language, user }: AdminPageProps) {
                                 <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
                                     {getText(generatedSurvey.title)}
                                 </h1>
-                            </div>
-                            <div className="relative block">
-                                <p className="text-lg text-slate-600 max-w-2xl mx-auto mt-2">
-                                    {getText(generatedSurvey.description)}
-                                </p>
-                            </div>
-                            {generatedSurvey.expiration_date && (
-                                <p className="text-sm text-red-600 mt-2 font-medium flex items-center justify-center gap-1">
-                                    <Calendar size={14} />
+                                <button 
+                                    onClick={handleStartEditHeader}
+                                    className="absolute -right-8 top-1 p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover/header:opacity-100 transition-opacity"
+                                >
+                                    <Edit2 size={18} />
+                                </button>
+                             </div>
+                             <p className="text-lg text-slate-600 max-w-3xl mx-auto mt-2">
+                                {getText(generatedSurvey.description)}
+                             </p>
+                             {generatedSurvey.expiration_date && (
+                                <p className="text-sm text-orange-600 mt-2 font-medium bg-orange-50 inline-block px-3 py-1 rounded-full border border-orange-100">
                                     Expires: {new Date(generatedSurvey.expiration_date).toLocaleDateString()}
                                 </p>
-                            )}
-                            
-                            <button 
-                                onClick={handleStartEditHeader}
-                                className="absolute top-0 right-0 md:right-20 opacity-0 group-hover/header:opacity-100 transition-opacity p-2 text-gray-400 hover:text-blue-600 bg-white/50 hover:bg-white rounded-full"
-                                title="Edit Title & Description"
-                            >
-                                <Edit2 size={20} />
-                            </button>
+                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Tabs Navigation */}
-                <div className="mt-8 mb-6 flex items-center justify-center gap-2">
-                    <button 
-                        onClick={() => scrollTabs('left')}
-                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-
-                    <div 
-                        ref={tabsContainerRef}
-                        className="flex overflow-x-auto pb-2 gap-2 no-scrollbar scroll-smooth w-full md:w-auto px-1"
-                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                    >
-                        <style>{`
-                            .no-scrollbar::-webkit-scrollbar {
-                                display: none;
-                            }
-                        `}</style>
-                        {generatedSurvey.sections.map((section, idx) => {
-                            const isActive = idx === currentStep;
-                            const isCompleted = idx < currentStep;
-                            return (
-                                <button
-                                    key={section.id}
-                                    type="button"
-                                    onClick={() => setCurrentStep(idx)}
-                                    className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
-                                      ${isActive 
-                                        ? 'bg-blue-600 text-white shadow-md' 
-                                        : isCompleted 
-                                          ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
-                                          : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                                      }`}
-                                >
-                                    {isCompleted && <Check size={14} className="mr-1.5" />}
-                                    <span className="mr-2">{idx + 1}.</span>
-                                    {getText(section.title)}
-                                </button>
-                            );
-                        })}
+                {/* Progress Bar (Visual only for Admin) */}
+                <div className="flex justify-center mb-8">
+                    <div className="flex items-center space-x-2">
+                        {generatedSurvey.sections.map((_, idx) => (
+                            <div 
+                                key={idx}
+                                className={`h-2 rounded-full transition-all duration-300 cursor-pointer
+                                    ${idx === currentStep ? 'w-8 bg-blue-600' : 'w-2 bg-gray-300 hover:bg-blue-300'}`}
+                                onClick={() => setCurrentStep(idx)}
+                            />
+                        ))}
                     </div>
-
-                    <button 
-                        onClick={() => scrollTabs('right')}
-                        className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
                 </div>
 
-                {generatedSurvey.sections.map((section, sIdx) => (
-                    sIdx === currentStep && (
-                    <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all hover:shadow-md group">
-                         {/* Section Header */}
-                         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            {editingSectionId === section.id ? (
-                                <div className="flex items-center space-x-2 w-full">
-                                    <input
-                                        type="text"
-                                        value={tempSectionTitle}
-                                        onChange={(e) => setTempSectionTitle(e.target.value)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEdit(); }}
-                                        className="flex-1 px-3 py-1 rounded border border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        autoFocus
-                                    />
-                                    <button onClick={handleSaveEdit} className="text-green-600 font-medium text-sm">Save</button>
-                                    <button onClick={handleCancelEdit} className="text-gray-500 font-medium text-sm">Cancel</button>
-                                </div>
-                            ) : (
-                                <h2 className="text-xl font-bold text-slate-800">{getText(section.title)}</h2>
-                            )}
-
-                            <div className="flex items-center space-x-2 ml-4">
-                                <button type="button" onClick={() => handleMoveSection(sIdx, 'up')} disabled={sIdx === 0} className="p-1 hover:bg-gray-200 rounded">↑</button>
-                                <button type="button" onClick={() => handleMoveSection(sIdx, 'down')} disabled={sIdx === generatedSurvey.sections.length - 1} className="p-1 hover:bg-gray-200 rounded">↓</button>
-                                <button type="button" onClick={() => handleStartEdit(section.id, getText(section.title))} className="p-1 hover:bg-gray-200 text-blue-600"><Edit2 size={16} /></button>
-                                <button type="button" onClick={() => handleDeleteSection(sIdx)} className="p-1 hover:bg-gray-200 text-red-600"><Trash2 size={16} /></button>
-                            </div>
-                         </div>
-
-                         {/* Questions List */}
-                         <div className="p-6 space-y-6">
-                            {section.questions.map((q, qIdx) => (
-                                <div key={q.id} className="relative group/q p-4 rounded-lg hover:bg-gray-50 border border-transparent hover:border-gray-200">
-                                    {/* Question Edit Controls */}
-                                    <div className="absolute right-2 top-2 opacity-0 group-hover/q:opacity-100 transition-opacity flex gap-2 z-10">
+                {/* Current Section */}
+                {generatedSurvey.sections[currentStep] && (
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 relative group/section">
+                        {/* Section Header */}
+                        <div className="flex justify-between items-start mb-6 border-b border-gray-100 pb-4">
+                            <div className="flex-1">
+                                {editingSectionId === generatedSurvey.sections[currentStep].id ? (
+                                    <div className="flex gap-2 items-center">
+                                        <input
+                                            type="text"
+                                            value={tempSectionTitle}
+                                            onChange={(e) => setTempSectionTitle(e.target.value)}
+                                            className="flex-1 text-xl font-bold text-gray-800 border-b-2 border-blue-500 focus:outline-none px-1"
+                                            autoFocus
+                                        />
+                                        <button onClick={handleSaveEdit} className="p-1 text-green-600 hover:bg-green-50 rounded"><Check size={20} /></button>
+                                        <button onClick={handleCancelEdit} className="p-1 text-red-500 hover:bg-red-50 rounded"><X size={20} /></button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 group/title">
+                                        <h2 className="text-2xl font-bold text-gray-800">
+                                            {getText(generatedSurvey.sections[currentStep].title)}
+                                        </h2>
                                         <button 
-                                            type="button"
-                                            onClick={() => handleStartEditQuestion(q)} 
-                                            className="p-1.5 bg-white text-blue-600 hover:text-blue-800 rounded shadow-sm border border-gray-200 text-xs font-medium flex items-center gap-1"
+                                            onClick={() => handleStartEdit(generatedSurvey.sections[currentStep].id, generatedSurvey.sections[currentStep].title)}
+                                            className="p-1 text-gray-300 hover:text-blue-500 opacity-0 group-hover/title:opacity-100 transition-opacity"
                                         >
-                                            <Edit2 size={12} /> Edit
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => handleDeleteQuestion(section.id, q.id)} 
-                                            className="p-1.5 bg-white text-red-600 hover:text-red-800 rounded shadow-sm border border-gray-200 text-xs font-medium flex items-center gap-1"
-                                        >
-                                            <Trash2 size={12} /> Delete
+                                            <Edit2 size={16} />
                                         </button>
                                     </div>
+                                )}
+                            </div>
+                            <div className="flex gap-1 ml-4">
+                                <button 
+                                    onClick={() => handleMoveSection(currentStep, 'up')}
+                                    disabled={currentStep === 0}
+                                    className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                                >
+                                    <ArrowLeft size={20} className="rotate-90" />
+                                </button>
+                                <button 
+                                    onClick={() => handleMoveSection(currentStep, 'down')}
+                                    disabled={currentStep === generatedSurvey.sections.length - 1}
+                                    className="p-1 text-gray-400 hover:text-blue-600 disabled:opacity-30"
+                                >
+                                    <ArrowLeft size={20} className="-rotate-90" />
+                                </button>
+                                <button 
+                                    onClick={() => handleDeleteSection(currentStep)}
+                                    className="p-1 text-gray-400 hover:text-red-500 ml-2"
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
+                        </div>
 
-                                    {editingQuestionId === q.id && tempQuestion ? (
-                                        <div className="space-y-4 bg-white p-4 rounded-lg border border-blue-200 shadow-sm">
-                                            {/* Edit Form for Question - Simplified for brevity */}
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-bold text-gray-500 uppercase">Question Text</label>
-                                                <input 
-                                                    value={getText(tempQuestion.text)}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        updateTempQuestion('text', { en: val, sc: val, tc: val });
-                                                    }}
-                                                    className="w-full p-2 border rounded"
-                                                />
+                        {/* Questions List */}
+                        <div className="space-y-6">
+                            {generatedSurvey.sections[currentStep].questions.map((q) => (
+                                <div key={q.id} className="relative group/question border border-transparent hover:border-blue-100 rounded-xl p-4 transition-all hover:bg-blue-50/30">
+                                    {editingQuestionId === q.id ? (
+                                        // Edit Mode Question
+                                        <div className="bg-white p-4 rounded-xl border-2 border-blue-200 shadow-lg space-y-4">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <h4 className="font-bold text-blue-600 text-sm uppercase">Edit Question</h4>
+                                                <button onClick={handleCancelEditQuestion}><X size={18} className="text-gray-400 hover:text-gray-600" /></button>
                                             </div>
                                             
-                                            {(tempQuestion.type === 'single_choice' || tempQuestion.type === 'multiple_choice') && (
-                                                <div className="space-y-2 mt-4">
-                                                    <label className="text-xs font-bold text-gray-500 uppercase">Options</label>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Question Text</label>
+                                                <input
+                                                    type="text"
+                                                    value={getText(tempQuestion?.text)}
+                                                    onChange={(e) => updateTempQuestion('text', e.target.value)}
+                                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-4">
+                                                <div className="flex-1">
+                                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Type</label>
+                                                    <select
+                                                        value={tempQuestion?.type}
+                                                        onChange={(e) => updateTempQuestion('type', e.target.value)}
+                                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                                    >
+                                                        <option value="short_text">Short Text</option>
+                                                        <option value="long_text">Long Text</option>
+                                                        <option value="number">Number</option>
+                                                        <option value="single_choice">Single Choice</option>
+                                                        <option value="multiple_choice">Multiple Choice</option>
+                                                    </select>
+                                                </div>
+                                                <div className="flex items-end pb-2">
+                                                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={tempQuestion?.required}
+                                                            onChange={(e) => updateTempQuestion('required', e.target.checked)}
+                                                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                                                        />
+                                                        <span className="text-sm font-medium text-gray-700">Required</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+
+                                            {(tempQuestion?.type === 'single_choice' || tempQuestion?.type === 'multiple_choice') && (
+                                                <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Options</label>
                                                     <div className="space-y-2">
-                                                        {tempQuestion.options?.map((opt, oIdx) => (
-                                                            <div key={oIdx} className="flex gap-2">
+                                                        {tempQuestion?.options?.map((opt, idx) => (
+                                                            <div key={idx} className="flex gap-2">
                                                                 <input
+                                                                    type="text"
                                                                     value={getText(opt.label)}
-                                                                    onChange={(e) => updateTempOption(oIdx, e.target.value)}
-                                                                    className="flex-1 p-2 border rounded text-sm"
-                                                                    placeholder="Option text"
+                                                                    onChange={(e) => updateTempOption(idx, e.target.value)}
+                                                                    className="flex-1 p-1.5 border rounded text-sm"
+                                                                    placeholder={`Option ${idx + 1}`}
                                                                 />
                                                                 <button 
-                                                                    onClick={() => removeTempOption(oIdx)}
-                                                                    className="p-2 text-red-500 hover:bg-red-50 rounded border border-gray-200"
-                                                                    title="Remove option"
+                                                                    onClick={() => removeTempOption(idx)}
+                                                                    className="text-red-400 hover:text-red-600 p-1"
                                                                 >
                                                                     <Trash2 size={16} />
                                                                 </button>
@@ -1199,104 +1171,192 @@ export function AdminPage({ language, user }: AdminPageProps) {
                                                         ))}
                                                         <button 
                                                             onClick={addTempOption}
-                                                            className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-medium mt-2"
+                                                            className="text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 mt-2"
                                                         >
-                                                            <Plus size={16} /> Add Option
+                                                            <Plus size={14} /> Add Option
                                                         </button>
                                                     </div>
                                                 </div>
                                             )}
 
-                                            <div className="flex justify-end gap-2">
-                                                <button onClick={handleCancelEditQuestion} className="px-3 py-1 bg-gray-100 rounded">Cancel</button>
-                                                <button onClick={handleSaveQuestion} className="px-3 py-1 bg-blue-600 text-white rounded">Save</button>
+                                            <div className="pt-2 flex justify-end gap-2">
+                                                <button 
+                                                    onClick={handleSaveQuestion}
+                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 shadow-sm"
+                                                >
+                                                    Save Changes
+                                                </button>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div>
-                                            <div className="flex items-baseline">
-                                                <span className="text-gray-400 mr-2 text-sm font-semibold">{sIdx + 1}.{qIdx + 1}</span>
-                                                <span className="font-medium text-gray-800">{getText(q.text)}</span>
-                                                {q.required && <span className="text-red-500 ml-1">*</span>}
-                                            </div>
-                                            
-                                            {/* Preview Options */}
-                                            {(q.type === 'single_choice' || q.type === 'multiple_choice') && (
-                                                <div className="mt-3 space-y-2 ml-6">
-                                                    {q.options?.map((opt, oIdx) => (
-                                                        <div key={oIdx} className="flex items-center text-sm text-gray-600">
-                                                            <div className={`w-4 h-4 mr-3 border flex-shrink-0 flex items-center justify-center ${q.type === 'multiple_choice' ? 'rounded border-gray-300' : 'rounded-full border-gray-300'}`}>
-                                                            </div>
-                                                            <span>{getText(opt.label)}</span>
+                                        // View Mode Question
+                                        <div className="flex gap-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-baseline gap-2 mb-2">
+                                                    <span className="text-sm font-bold text-gray-400">Q{generatedSurvey.sections[currentStep].questions.indexOf(q) + 1}</span>
+                                                    <h3 className="font-semibold text-gray-900 text-lg">
+                                                        {getText(q.text)}
+                                                        {q.required && <span className="text-red-500 ml-1">*</span>}
+                                                    </h3>
+                                                </div>
+                                                
+                                                {/* Question Preview */}
+                                                <div className="pl-6 opacity-60 pointer-events-none">
+                                                    {q.type === 'short_text' && (
+                                                        <div className="h-10 border rounded-lg bg-gray-50"></div>
+                                                    )}
+                                                    {q.type === 'long_text' && (
+                                                        <div className="h-24 border rounded-lg bg-gray-50"></div>
+                                                    )}
+                                                    {(q.type === 'single_choice' || q.type === 'multiple_choice') && (
+                                                        <div className="space-y-2">
+                                                            {q.options?.map((opt, i) => (
+                                                                <div key={i} className="flex items-center gap-2">
+                                                                    <div className={`w-4 h-4 border ${q.type === 'single_choice' ? 'rounded-full' : 'rounded'} bg-white`}></div>
+                                                                    <span className="text-gray-600">{getText(opt.label)}</span>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    ))}
+                                                    )}
                                                 </div>
-                                            )}
-                                            
-                                            {/* Preview Text Inputs */}
-                                            {(q.type === 'short_text' || q.type === 'number') && (
-                                                <div className="mt-3 ml-6">
-                                                    <div className="w-full max-w-md h-10 border border-gray-200 rounded bg-gray-50/50"></div>
-                                                </div>
-                                            )}
-                                            {q.type === 'long_text' && (
-                                                <div className="mt-3 ml-6">
-                                                    <div className="w-full max-w-md h-20 border border-gray-200 rounded bg-gray-50/50"></div>
-                                                </div>
-                                            )}
+                                            </div>
+
+                                            {/* Action Buttons */}
+                                            <div className="flex flex-col gap-1 opacity-0 group-hover/question:opacity-100 transition-opacity">
+                                                <button 
+                                                    onClick={() => handleStartEditQuestion(q)}
+                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 size={18} />
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteQuestion(generatedSurvey.sections[currentStep].id, q.id)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             ))}
-                         </div>
+                        </div>
+
+                        {/* Add Question Button */}
+                        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center">
+                            {/* <button className="flex items-center gap-2 px-4 py-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg font-medium transition-colors">
+                                <Plus size={20} />
+                                Add Question
+                            </button> */}
+                            <p className="text-sm text-gray-400 italic">Use "Refine with AI" to add more questions or sections.</p>
+                        </div>
                     </div>
-                    )
-                ))}
+                )}
             </div>
         )}
 
-        {/* State: Viewing Result Details */}
+        {/* Floating Chat Interface */}
+        {generatedSurvey && (
+            <div className={`fixed right-0 top-0 bottom-0 w-80 md:w-96 bg-white shadow-2xl transform transition-transform duration-300 z-[60] flex flex-col border-l border-gray-200
+                ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+                
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <div className="flex items-center gap-2 text-gray-700">
+                        <MessageSquare size={20} className="text-blue-600" />
+                        <h3 className="font-bold">AI Assistant</h3>
+                    </div>
+                    <button onClick={() => setIsChatOpen(false)} className="text-gray-400 hover:text-gray-600">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+                    {chatHistory.map((msg, idx) => (
+                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl p-3 text-sm shadow-sm
+                                ${msg.role === 'user' 
+                                    ? 'bg-blue-600 text-white rounded-br-none' 
+                                    : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}`}>
+                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                            </div>
+                        </div>
+                    ))}
+                    {isChatLoading && (
+                        <div className="flex justify-start">
+                            <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-none p-3 shadow-sm">
+                                <div className="flex gap-1">
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <div ref={chatEndRef} />
+                </div>
+
+                <div className="p-4 bg-white border-t border-gray-200">
+                    <form onSubmit={handleChatSubmit} className="relative">
+                        <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder="Type instructions..."
+                            className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm"
+                        />
+                        <button 
+                            type="submit"
+                            disabled={!chatInput.trim() || isChatLoading}
+                            className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            <ArrowLeft size={16} className="rotate-180" /> {/* Send Icon */}
+                        </button>
+                    </form>
+                    <p className="text-xs text-center text-gray-400 mt-2">
+                        AI can update the survey structure or content.
+                    </p>
+                </div>
+            </div>
+        )}
+
+        {/* Viewing Result Modal */}
         {viewingResult && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-8 relative max-h-[90vh] overflow-y-auto">
-                    <button 
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col relative">
+                     <button 
                         onClick={() => setViewingResult(null)}
-                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full p-1"
                     >
                         <X size={24} />
                     </button>
                     
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Response Details</h2>
-                    
-                    <div className="space-y-6">
-                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-500 mb-6 pb-6 border-b border-gray-100">
-                            <div>
-                                <span className="block font-medium text-gray-700">Respondent</span>
-                                {viewingResult.user_id === 'anonymous' ? 'Anonymous User' : viewingResult.user_id}
-                            </div>
-                            <div>
-                                <span className="block font-medium text-gray-700">Date</span>
-                                {new Date(viewingResult.updated_at || '').toLocaleString()}
-                            </div>
+                    <div className="p-6 border-b border-gray-200 bg-gray-50">
+                        <h2 className="text-xl font-bold text-gray-900">Response Details</h2>
+                        <div className="flex gap-4 mt-2 text-sm text-gray-500">
+                            <span>User: {viewingResult.user_id}</span>
+                            <span>Date: {new Date(viewingResult.updated_at).toLocaleString()}</span>
                         </div>
+                    </div>
 
-                        {templates.find(t => t.id === selectedAnalyticsTemplateId)?.schema.sections.map(section => (
-                            <div key={section.id} className="space-y-4">
-                                <h3 className="font-bold text-gray-800 text-lg pb-2 border-b border-gray-100">
+                    <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
+                        {templates.find(t => t.id === viewingResult.template_id)?.schema.sections.map((section) => (
+                            <div key={section.id} className="border-b border-gray-100 pb-6 last:border-0">
+                                <h3 className="font-bold text-lg text-gray-800 mb-4 bg-blue-50 inline-block px-3 py-1 rounded-lg">
                                     {getText(section.title)}
                                 </h3>
                                 <div className="space-y-4">
-                                    {section.questions.map(question => {
-                                        const answer = viewingResult.answers[question.id];
-                                        return (
-                                            <div key={question.id} className="bg-gray-50 p-4 rounded-lg">
-                                                <p className="font-medium text-gray-900 mb-2">{getText(question.text)}</p>
-                                                <div className="text-gray-700">
-                                                    {renderAnswer(question, answer)}
-                                                </div>
+                                    {section.questions.map((q) => (
+                                        <div key={q.id} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="md:col-span-1 text-sm font-medium text-gray-500">
+                                                {getText(q.text)}
                                             </div>
-                                        );
-                                    })}
+                                            <div className="md:col-span-2 text-gray-900 font-medium">
+                                                {renderAnswer(q, viewingResult.answers[q.id])}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         ))}
@@ -1306,8 +1366,8 @@ export function AdminPage({ language, user }: AdminPageProps) {
         )}
 
         {/* Share Modal */}
-        {shareSurvey && shareSurvey.short_id && (
-            <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+        {shareSurvey && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
                 <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
                     <button 
                         onClick={() => setShareSurvey(null)}
@@ -1316,122 +1376,42 @@ export function AdminPage({ language, user }: AdminPageProps) {
                         <X size={24} />
                     </button>
                     
-                    <h2 className="text-2xl font-bold text-slate-900 mb-6 text-center">Share Survey</h2>
-                    
-                    <div className="flex flex-col items-center space-y-6">
-                        <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-200">
-                             <QRCodeCanvas 
-                               value={`${window.location.origin}/apps/survey-gen/${shareSurvey.short_id}`} 
-                               size={200}
-                               level={"H"}
-                               includeMargin={true}
-                            />
-                       </div>
-                       
-                       <div className="w-full space-y-2">
-                           <label className="text-sm font-medium text-gray-700 block">Survey URL</label>
-                           <div className="flex gap-2">
-                               <input 
-                                   readOnly 
-                                   value={`${window.location.origin}/apps/survey-gen/${shareSurvey.short_id}`}
-                                   className="flex-1 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600 focus:outline-none font-mono"
-                               />
-                               <button
-                                   onClick={() => {
-                                       navigator.clipboard.writeText(`${window.location.origin}/apps/survey-gen/${shareSurvey.short_id}`);
-                                       alert('Link copied to clipboard!');
-                                   }}
-                                    className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
-                                    title="Copy Link"
-                                >
-                                    <Copy size={20} />
-                                </button>
-                            </div>
-                        </div>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">Share Survey</h2>
+                    <p className="text-sm text-gray-500 mb-6">
+                        Scan the QR code or copy the link below to share this survey with suppliers.
+                    </p>
 
-                        <div className="text-center text-sm text-gray-500 px-4">
-                            <p>Share this QR code or link with suppliers to start collecting responses directly.</p>
+                    <div className="flex flex-col items-center gap-6 mb-6">
+                        <div className="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                            <QRCodeCanvas 
+                                value={`${window.location.origin}/survey/${shareSurvey.short_id}`} 
+                                size={200}
+                                level="H"
+                            />
+                        </div>
+                        <div className="w-full flex gap-2">
+                            <input 
+                                type="text" 
+                                readOnly
+                                value={`${window.location.origin}/survey/${shareSurvey.short_id}`}
+                                className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-600 focus:outline-none"
+                            />
+                            <button 
+                                onClick={() => {
+                                    navigator.clipboard.writeText(`${window.location.origin}/survey/${shareSurvey.short_id}`);
+                                    alert('Link copied to clipboard!');
+                                }}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                            >
+                                Copy
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         )}
 
-        {/* Chat Sidebar */}
-        <div className={`fixed top-0 right-0 h-full w-80 md:w-96 bg-white shadow-2xl transform transition-transform duration-300 z-50 flex flex-col border-l border-gray-200 ${isChatOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                    <MessageSquare size={20} className="text-blue-600" />
-                    Survey Assistant
-                </h3>
-                <button 
-                    onClick={() => setIsChatOpen(false)}
-                    className="p-1 hover:bg-gray-200 rounded-full text-gray-500"
-                >
-                    <X size={20} />
-                </button>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
-                {chatHistory.length === 0 ? (
-                    <div className="text-center text-gray-400 mt-10 text-sm">
-                        <p>Ask me to refine the survey!</p>
-                        <p className="mt-2 text-xs">e.g., "Add a question about safety certifications"</p>
-                    </div>
-                ) : (
-                    chatHistory.map((msg, idx) => (
-                        <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm
-                                ${msg.role === 'user' 
-                                    ? 'bg-blue-600 text-white rounded-br-none' 
-                                    : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}`}
-                            >
-                                <div className={`prose prose-sm max-w-none break-words ${
-                                msg.role === 'user' ? 'prose-invert text-white' : 'prose-slate text-gray-700'
-                            }`}>
-                                <ReactMarkdown>
-                                    {msg.content}
-                                </ReactMarkdown>
-                            </div>
-                            </div>
-                        </div>
-                    ))
-                )}
-                {isChatLoading && (
-                    <div className="flex justify-start">
-                        <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-none border border-gray-200 shadow-sm flex gap-1">
-                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                            <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-                        </div>
-                    </div>
-                )}
-                <div ref={chatEndRef} />
-            </div>
-
-            <div className="p-4 bg-white border-t border-gray-200">
-                <form onSubmit={handleChatSubmit} className="relative">
-                    <input
-                        type="text"
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Type your instruction..."
-                        disabled={isChatLoading || !generatedSurvey}
-                        className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
-                    />
-                    <button 
-                        type="submit"
-                        disabled={!chatInput.trim() || isChatLoading || !generatedSurvey}
-                        className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
-                    >
-                        <ArrowLeft size={16} className="rotate-90" />
-                    </button>
-                </form>
-            </div>
-        </div>
-
       </div>
     </div>
   );
 }
-
