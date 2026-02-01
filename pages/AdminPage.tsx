@@ -7,6 +7,7 @@ import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import {
   PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -189,7 +190,7 @@ export function AdminPage({ user }: AdminPageProps) {
   useEffect(() => {
     if (isChatOpen && chatHistory.length === 0) {
         setChatHistory([
-            { role: 'assistant', content: "Hello! I'm here to help you refine your survey. You can ask me to add new questions, modify existing ones, or change the tone. What would you like to do?" }
+            { role: 'assistant', content: "Hello! I'm here to help you refine your survey. You can ask me to add new questions, modify existing ones, or translate to another language. What would you like to do?" }
         ]);
     }
   }, [isChatOpen]);
@@ -1290,7 +1291,15 @@ export function AdminPage({ user }: AdminPageProps) {
                                 ${msg.role === 'user' 
                                     ? 'bg-blue-600 text-white rounded-br-none' 
                                     : 'bg-white text-gray-700 border border-gray-200 rounded-bl-none'}`}>
-                                <p className="whitespace-pre-wrap">{msg.content}</p>
+                                {msg.role === 'user' ? (
+                                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                                ) : (
+                                    <div className="prose prose-sm max-w-none prose-blue [&>:first-child]:mt-0 [&>:last-child]:mb-0">
+                                        <ReactMarkdown>
+                                            {msg.content}
+                                        </ReactMarkdown>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
