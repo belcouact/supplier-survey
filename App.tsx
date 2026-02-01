@@ -43,7 +43,7 @@ export default function App() {
     // Fallback to metadata if no DB role found (for legacy support or race conditions)
     const metaRole = currentUser.user_metadata?.role;
     
-    if (email === 'admin@wlgore.com' || dbRole === 'admin' || dbRole === 'super_admin' || metaRole === 'admin' || metaRole === 'super_admin') {
+    if (dbRole === 'admin' || dbRole === 'super_admin' || metaRole === 'admin' || metaRole === 'super_admin') {
       setIsAdmin(true);
     } else {
       setIsAdmin(false);
@@ -61,7 +61,7 @@ export default function App() {
     const dbRole = await getUserRole(userData.id);
     const metaRole = userData.user_metadata?.role;
     
-    if (email === 'admin@wlgore.com' || dbRole === 'admin' || dbRole === 'super_admin' || metaRole === 'admin' || metaRole === 'super_admin') {
+    if (dbRole === 'admin' || dbRole === 'super_admin' || metaRole === 'admin' || metaRole === 'super_admin') {
       const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
       if (window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
          window.location.href = `${basePath}admin`;

@@ -3,7 +3,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { generateSurvey, refineSurvey, getAvailableModels, analyzeSurveyResults, chatWithSurveyResults } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
-import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
+import { getAllUsers, updateUserRole, deleteUser, getUserRole } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain } from 'lucide-react';
@@ -43,16 +43,14 @@ export function AdminPage({ user }: AdminPageProps) {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
-        const role = user.user_metadata?.role;
-        const email = user.email;
-        if (email === 'admin@wlgore.com' || role === 'super_admin') {
-            setIsSuperAdmin(true);
-        } else {
-            setIsSuperAdmin(false);
-        }
+        getUserRole(user.id).then(role => {
+            setUserRole(role);
+            setIsSuperAdmin(role === 'super_admin');
+        });
     }
   }, [user]);
 
@@ -260,7 +258,8 @@ export function AdminPage({ user }: AdminPageProps) {
   const loadTemplates = async () => {
     try {
       setIsLoadingTemplates(true);
-      const data = await getTemplates();
+      const effectiveRole = isSuperAdmin ? 'super_admin' : (userRole || 'common_user');
+      const data = await getTemplates(user.id, effectiveRole);
       setTemplates(data || []);
     } catch (err) {
       console.error('Failed to load templates', err);
