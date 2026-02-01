@@ -223,7 +223,7 @@ export function AdminPage({ user }: AdminPageProps) {
       loadTemplates();
     }
     loadModels();
-  }, [user, isSuperAdmin]);
+  }, [user, isSuperAdmin, userRole]);
 
   const loadModels = async () => {
     try {
