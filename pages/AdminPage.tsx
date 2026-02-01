@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
-import { generateSurvey, refineSurvey, getAvailableModels, analyzeSurveyResults } from '../services/aiService';
+import { generateSurvey, refineSurvey, getAvailableModels, analyzeSurveyResults, chatWithSurveyResults } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
@@ -38,6 +38,11 @@ export function AdminPage({ user }: AdminPageProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<string | null>(null);
   const [showAnalysisModal, setShowAnalysisModal] = useState(false);
+  const [showResultChat, setShowResultChat] = useState(false);
+  const [resultChatHistory, setResultChatHistory] = useState<ChatMessage[]>([]);
+  const [resultChatInput, setResultChatInput] = useState('');
+  const [isResultChatLoading, setIsResultChatLoading] = useState(false);
+  const resultChatEndRef = useRef<HTMLDivElement>(null);
 
   // --- User Management State ---
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -93,6 +98,47 @@ export function AdminPage({ user }: AdminPageProps) {
         setIsAnalyzing(false);
     }
   };
+
+  const handleResultChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resultChatInput.trim() || isResultChatLoading) return;
+
+    const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
+    if (!template) return;
+
+    const userMessage = resultChatInput;
+    setResultChatInput('');
+    setIsResultChatLoading(true);
+
+    const newHistory: ChatMessage[] = [
+        ...resultChatHistory,
+        { role: 'user', content: userMessage }
+    ];
+    setResultChatHistory(newHistory);
+
+    try {
+        const response = await chatWithSurveyResults(template, analyticsResults, userMessage, resultChatHistory, selectedModel);
+        
+        setResultChatHistory([
+            ...newHistory,
+            { role: 'assistant', content: response }
+        ]);
+    } catch (err) {
+        console.error(err);
+        setResultChatHistory([
+            ...newHistory,
+            { role: 'assistant', content: 'Sorry, I encountered an error analyzing the results.' }
+        ]);
+    } finally {
+        setIsResultChatLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (resultChatEndRef.current) {
+        resultChatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [resultChatHistory, showResultChat]);
 
   const handleUpdateRole = async (newRole: UserRole) => {
     if (!selectedUser) return;
@@ -718,13 +764,13 @@ export function AdminPage({ user }: AdminPageProps) {
                                     <h3 className="font-bold text-gray-800">Response History</h3>
                                     <div className="flex gap-2">
                                         <button 
-                                            onClick={handleAnalyzeResults}
-                                            disabled={analyticsResults.length === 0 || isAnalyzing}
-                                            className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isAnalyzing ? 'animate-pulse' : ''}`}
-                                            title="Analyze results with AI"
+                                            onClick={() => setShowResultChat(true)}
+                                            disabled={analyticsResults.length === 0}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-indigo-200 rounded-lg text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="Chat with AI about results"
                                         >
-                                            <Brain size={16} />
-                                            {isAnalyzing ? 'Analyzing...' : 'Analyze with AI'}
+                                            <MessageSquare size={16} />
+                                            Chat with AI
                                         </button>
                                         <button 
                                             onClick={() => {
@@ -748,6 +794,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                                 <th className="px-6 py-3">ID/Email</th>
                                                 <th className="px-6 py-3">Submit Date</th>
                                                 <th className="px-6 py-3">Actions</th>
+                                                <th className="px-6 py-3">Analysis</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100">
@@ -767,6 +814,17 @@ export function AdminPage({ user }: AdminPageProps) {
                                                             className="text-blue-600 hover:underline"
                                                         >
                                                             View Details
+                                                        </button>
+                                                    </td>
+                                                    <td className="px-6 py-3">
+                                                        <button 
+                                                            onClick={handleAnalyzeResults}
+                                                            disabled={isAnalyzing}
+                                                            className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-xs font-medium text-purple-700 hover:bg-purple-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isAnalyzing ? 'animate-pulse' : ''}`}
+                                                            title="Analyze results with AI"
+                                                        >
+                                                            <Brain size={14} />
+                                                            {isAnalyzing ? 'Analyzing...' : 'Analyze'}
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -1506,8 +1564,8 @@ export function AdminPage({ user }: AdminPageProps) {
 
         {/* Analysis Modal */}
         {showAnalysisModal && (
-            <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col relative overflow-hidden">
+            <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white w-full h-full flex flex-col relative overflow-hidden">
                     <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gradient-to-r from-purple-50 to-white">
                         <div className="flex items-center gap-3">
                             <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
@@ -1524,7 +1582,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                        <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-gray-800 prose-p:text-gray-600 prose-li:text-gray-600 prose-strong:text-gray-900">
+                        <div className="prose prose-slate max-w-none prose-headings:font-bold prose-headings:text-gray-800 prose-p:text-gray-600 prose-li:text-gray-600 prose-strong:text-gray-900 mx-auto container">
                             <ReactMarkdown>{analysisResult || ''}</ReactMarkdown>
                         </div>
                     </div>
@@ -1536,6 +1594,83 @@ export function AdminPage({ user }: AdminPageProps) {
                         >
                             Close
                         </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Result Chat Sidebar */}
+        {showResultChat && (
+            <div className="fixed inset-0 z-[90] flex justify-end bg-black/20 backdrop-blur-[1px] animate-fade-in">
+                <div className="w-full max-w-md h-full bg-white shadow-2xl flex flex-col animate-slide-in-right">
+                    <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-indigo-50">
+                        <div className="flex items-center gap-2 text-indigo-800 font-bold">
+                            <Sparkles size={20} />
+                            <h3>Chat with AI Analyst</h3>
+                        </div>
+                        <button 
+                            onClick={() => setShowResultChat(false)}
+                            className="p-1 text-gray-500 hover:bg-white/50 rounded-full transition-colors"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+                        {resultChatHistory.length === 0 && (
+                            <div className="text-center py-8 text-gray-500 text-sm">
+                                <div className="w-12 h-12 bg-indigo-100 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <MessageSquare size={24} />
+                                </div>
+                                <p>Ask questions about the survey results.</p>
+                                <p className="mt-1">e.g., "What are the common compliance issues?"</p>
+                            </div>
+                        )}
+                        {resultChatHistory.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] p-3 rounded-xl text-sm ${
+                                    msg.role === 'user' 
+                                    ? 'bg-indigo-600 text-white rounded-br-none' 
+                                    : 'bg-white border border-gray-200 text-gray-800 rounded-bl-none shadow-sm'
+                                }`}>
+                                <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'prose-invert' : ''}`}>
+                                    <ReactMarkdown>
+                                        {msg.content}
+                                    </ReactMarkdown>
+                                </div>
+                                </div>
+                            </div>
+                        ))}
+                        {isResultChatLoading && (
+                            <div className="flex justify-start">
+                                <div className="bg-white border border-gray-200 p-3 rounded-xl rounded-bl-none shadow-sm flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                    <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                </div>
+                            </div>
+                        )}
+                        <div ref={resultChatEndRef} />
+                    </div>
+
+                    <div className="p-4 bg-white border-t border-gray-200">
+                        <form onSubmit={handleResultChatSubmit} className="relative">
+                            <input
+                                type="text"
+                                value={resultChatInput}
+                                onChange={(e) => setResultChatInput(e.target.value)}
+                                placeholder="Ask about the results..."
+                                disabled={isResultChatLoading}
+                                className="w-full pl-4 pr-10 py-3 bg-gray-100 border-transparent focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 rounded-xl transition-all outline-none"
+                            />
+                            <button 
+                                type="submit"
+                                disabled={!resultChatInput.trim() || isResultChatLoading}
+                                className="absolute right-2 top-2 p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <ArrowLeft size={16} className="rotate-180" />
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>

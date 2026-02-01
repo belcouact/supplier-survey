@@ -145,6 +145,38 @@ export async function analyzeSurveyResults(template: any, results: any[], model:
   return callAI<string>(messages, ANALYSIS_SYSTEM_INSTRUCTION, model, false);
 }
 
+const RESULT_CHAT_SYSTEM_INSTRUCTION = `You are an expert Supply Chain Auditor and Data Analyst.
+Your goal is to answer questions about a specific set of survey results.
+
+Rules:
+1. You will receive the "Survey Template" (questions) and the "Survey Results" (all answers).
+2. Answer the user's questions based ONLY on the provided data.
+3. If the answer is not in the data, state clearly that the information is missing.
+4. Provide insights, trends, and comparisons where relevant.
+5. Format your response in clean, structured Markdown.
+6. Do NOT return JSON. Return only the Markdown text.
+`;
+
+/**
+ * Chat with AI about the survey results.
+ */
+export async function chatWithSurveyResults(template: any, results: any[], userQuestion: string, history: ChatMessage[] = [], model: string = 'deepseek'): Promise<string> {
+    const historyContext = history.length > 0 
+    ? `Conversation History:\n${history.map(m => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}\n\n`
+    : '';
+
+  const prompt = `Survey Template: ${JSON.stringify(template)}
+  
+  Survey Results: ${JSON.stringify(results)}
+  
+  ${historyContext}
+  
+  User Question: ${userQuestion}`;
+
+  const messages: ChatMessage[] = [{ role: 'user', content: prompt }];
+  return callAI<string>(messages, RESULT_CHAT_SYSTEM_INSTRUCTION, model, false);
+}
+
 /**
  * Common AI call handler
  */
