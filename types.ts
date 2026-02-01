@@ -43,7 +43,7 @@ export interface ChatMessage {
 export interface SurveyResult {
   id?: string;
   template_id: string;
-  user_id: string; // 'anonymous' or UUID
+  user_id: string | null; // null for anonymous, UUID for authenticated
   answers: SurveyAnswers;
   updated_at?: string;
 }

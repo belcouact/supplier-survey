@@ -44,9 +44,10 @@ export function exportSurveyResultsToCSV(results: SurveyResult[], template: Surv
   const csvRows = [headers.join(',')];
 
   results.forEach(result => {
-    const email = userEmailMap[result.user_id] || '';
+    const userId = result.user_id || 'anonymous';
+    const email = (result.user_id && userEmailMap[result.user_id]) || '';
     const row = [
-      escapeCsv(result.user_id),
+      escapeCsv(userId),
       escapeCsv(email),
       escapeCsv(result.updated_at || '')
     ];

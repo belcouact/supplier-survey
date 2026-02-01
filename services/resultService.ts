@@ -10,12 +10,20 @@ export const TABLE_NAME = 'survey_results';
  */
 export async function saveSurveyResult(templateId: string, userId: string, answers: SurveyAnswers) {
   // Check if a result already exists
-  const { data: existingData } = await supabase
+  let query = supabase
     .from(TABLE_NAME)
     .select('id')
-    .eq('template_id', templateId)
-    .eq('user_id', userId)
-    .maybeSingle();
+    .eq('template_id', templateId);
+  
+  if (userId === 'anonymous') {
+    query = query.is('user_id', null);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data: existingData } = await query.maybeSingle();
+
+  const dbUserId = userId === 'anonymous' ? null : userId;
 
   if (existingData) {
     // Update
@@ -37,7 +45,7 @@ export async function saveSurveyResult(templateId: string, userId: string, answe
       .insert([
         {
           template_id: templateId,
-          user_id: userId,
+          user_id: dbUserId,
           answers,
           updated_at: new Date().toISOString(),
         },
@@ -53,12 +61,18 @@ export async function saveSurveyResult(templateId: string, userId: string, answe
  * Loads the latest survey result for a user and template.
  */
 export async function getSurveyResult(templateId: string, userId: string): Promise<SurveyResult | null> {
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLE_NAME)
     .select('*')
-    .eq('template_id', templateId)
-    .eq('user_id', userId)
-    .maybeSingle();
+    .eq('template_id', templateId);
+
+  if (userId === 'anonymous') {
+    query = query.is('user_id', null);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     console.error('Error fetching survey result:', error);
@@ -83,10 +97,17 @@ export async function getSurveyResultsByTemplate(templateId: string): Promise<Su
 }
 
 export async function getUserResults(userId: string): Promise<SurveyResult[]> {
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLE_NAME)
-    .select('*')
-    .eq('user_id', userId);
+    .select('*');
+
+  if (userId === 'anonymous') {
+    query = query.is('user_id', null);
+  } else {
+    query = query.eq('user_id', userId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching user results:', error);

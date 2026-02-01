@@ -801,7 +801,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                             {analyticsResults.map((result) => (
                                                 <tr key={result.id} className="hover:bg-gray-50">
                                                     <td className="px-6 py-3 font-medium text-gray-900">
-                                                        {result.user_id === 'anonymous' 
+                                                        {!result.user_id || result.user_id === 'anonymous' 
                                                             ? 'Anonymous' 
                                                             : (users.find(u => u.id === result.user_id)?.email || result.user_id)}
                                                     </td>
