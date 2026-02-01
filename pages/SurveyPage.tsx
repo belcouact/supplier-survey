@@ -122,6 +122,25 @@ export function SurveyPage({ user }: SurveyPageProps) {
     }
   };
 
+  const handleSave = async () => {
+    if (readOnly) return;
+    
+    // Simple visual feedback could be improved, but alert is functional for now
+    try {
+      if (user && templateId) {
+        await saveSurveyResult(templateId, user.id, answers);
+        alert('Progress saved successfully!');
+      } else if (templateId) {
+        // Warning for anonymous users
+        await saveSurveyResult(templateId, 'anonymous', answers);
+        alert('Progress saved! Note: As an anonymous user, your progress is shared with other anonymous users. Please log in for a private session.');
+      }
+    } catch (err) {
+      console.error('Save error', err);
+      alert('Failed to save progress. Please try again.');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -169,6 +188,7 @@ export function SurveyPage({ user }: SurveyPageProps) {
         answers={answers}
         onAnswerChange={handleAnswerChange}
         onSubmit={handleSubmit}
+        onSave={handleSave}
         isSubmitting={isSubmitting}
         readOnly={readOnly}
       />

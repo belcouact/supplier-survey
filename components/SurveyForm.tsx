@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { SurveySchema, SurveyAnswers, QuestionType } from '../types';
-import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Save } from 'lucide-react';
 
 interface SurveyFormProps {
   survey: SurveySchema;
   answers: SurveyAnswers;
   onAnswerChange: (qId: string, value: any, type: QuestionType) => void;
   onSubmit: (e: React.FormEvent) => void;
+  onSave?: () => void;
   isSubmitting?: boolean;
   readOnly?: boolean;
 }
@@ -16,6 +17,7 @@ export function SurveyForm({
   answers, 
   onAnswerChange, 
   onSubmit,
+  onSave,
   isSubmitting = false,
   readOnly = false
 }: SurveyFormProps) {
@@ -271,6 +273,18 @@ export function SurveyForm({
           <ChevronLeft size={20} className="mr-2" />
           Previous
         </button>
+
+        {!readOnly && onSave && (
+          <button
+            type="button"
+            onClick={onSave}
+            className="flex items-center px-4 md:px-6 py-3 rounded-xl font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 shadow-sm transition-all hover:shadow-md active:scale-95"
+          >
+            <Save size={20} className="mr-2" />
+            <span className="hidden sm:inline">Save Progress</span>
+            <span className="inline sm:hidden">Save</span>
+          </button>
+        )}
 
         {currentStep < totalSteps - 1 ? (
           <button
