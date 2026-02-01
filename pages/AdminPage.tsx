@@ -158,9 +158,11 @@ export function AdminPage({ user }: AdminPageProps) {
 
   // --- Fetch Templates & Models ---
   useEffect(() => {
-    loadTemplates();
+    if (user) {
+      loadTemplates();
+    }
     loadModels();
-  }, []);
+  }, [user, isSuperAdmin]);
 
   const loadModels = async () => {
     try {
@@ -334,7 +336,7 @@ export function AdminPage({ user }: AdminPageProps) {
   const handleDuplicateTemplate = async (e: React.MouseEvent, template: SurveyTemplate) => {
     e.stopPropagation();
     try {
-        const newTemplate = await duplicateTemplate(template);
+        const newTemplate = await duplicateTemplate(template, user.id);
         setTemplates([newTemplate, ...templates]);
     } catch (err) {
         alert('Failed to duplicate template');

@@ -5,11 +5,10 @@ interface NavbarProps {
   user: any;
   isAdmin: boolean;
   onOpenAuth: () => void;
-  onOpenAdminAuth: () => void;
   onLogout: () => void;
 }
 
-export function Navbar({ user, isAdmin, onOpenAuth, onOpenAdminAuth, onLogout }: NavbarProps) {
+export function Navbar({ user, isAdmin, onOpenAuth, onLogout }: NavbarProps) {
   const navigate = useNavigate();
 
   return (
@@ -25,23 +24,14 @@ export function Navbar({ user, isAdmin, onOpenAuth, onOpenAdminAuth, onLogout }:
           
           <div className="flex items-center space-x-4">
             
-            {isAdmin ? (
+            {isAdmin && (
               <Link 
                 to="/admin" 
                 className="text-gray-600 hover:text-blue-600 flex items-center gap-1 text-sm font-medium"
               >
                 <Settings size={18} />
-                <span className="hidden sm:inline">Admin</span>
-              </Link>
-            ) : (
-              <button
-                onClick={onOpenAdminAuth}
-                className="text-gray-600 hover:text-blue-600 flex items-center gap-1 text-sm font-medium"
-                title="Admin Login"
-              >
-                <Settings size={18} />
                 <span className="hidden sm:inline">Manage</span>
-              </button>
+              </Link>
             )}
 
             {user ? (

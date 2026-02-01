@@ -63,11 +63,21 @@ export async function getTemplateByShortId(shortId: string) {
 }
 
 
-export async function getTemplates() {
-  const { data, error } = await supabase
+export async function getTemplates(userId?: string, role?: string) {
+  let query = supabase
     .from('templates')
     .select('*')
     .order('created_at', { ascending: false });
+
+  // If not super_admin, only show own templates
+  // Assuming 'admin' role can only see their own. 
+  // If role is undefined, we might want to return empty or handle carefully, 
+  // but for now we'll assume the caller handles auth checks.
+  if (role !== 'super_admin' && userId) {
+      query = query.eq('created_by', userId);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     console.error('Error fetching templates:', error);
@@ -91,7 +101,7 @@ export async function deleteTemplate(id: string) {
   }
 }
 
-export async function duplicateTemplate(originalTemplate: any) {
+export async function duplicateTemplate(originalTemplate: any, userId: string) {
   // Deep copy the schema
   const newSchema = JSON.parse(JSON.stringify(originalTemplate.schema));
   
@@ -130,6 +140,7 @@ export async function duplicateTemplate(originalTemplate: any) {
         short_id: shortId,
         expiration_date: originalTemplate.expiration_date,
         created_at: new Date().toISOString(),
+        created_by: userId,
       },
     ])
     .select();

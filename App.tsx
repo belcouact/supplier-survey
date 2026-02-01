@@ -71,11 +71,6 @@ export default function App() {
     window.location.href = basePath;
   };
 
-  const handleOpenAdminAuth = () => {
-    setDefaultAuthEmail('admin@wlgore.com');
-    setIsAuthOpen(true);
-  };
-
   const handleOpenAuth = () => {
     setDefaultAuthEmail('');
     setIsAuthOpen(true);
@@ -88,7 +83,6 @@ export default function App() {
           user={user} 
           isAdmin={isAdmin}
           onOpenAuth={handleOpenAuth}
-          onOpenAdminAuth={handleOpenAdminAuth}
           onLogout={handleLogout}
         />
 
