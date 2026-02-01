@@ -6,7 +6,7 @@ import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, up
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2 } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles } from 'lucide-react';
 import {
   PieChart, Pie, Cell,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -184,6 +184,15 @@ export function AdminPage({ user }: AdminPageProps) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [chatHistory, isChatOpen]);
+
+  // --- Auto-Welcome Message for AI Chat ---
+  useEffect(() => {
+    if (isChatOpen && chatHistory.length === 0) {
+        setChatHistory([
+            { role: 'assistant', content: "Hello! I'm here to help you refine your survey. You can ask me to add new questions, modify existing ones, or change the tone. What would you like to do?" }
+        ]);
+    }
+  }, [isChatOpen]);
 
   const loadTemplates = async () => {
     try {
@@ -948,12 +957,12 @@ export function AdminPage({ user }: AdminPageProps) {
 
                         <button 
                             onClick={() => setIsChatOpen(!isChatOpen)}
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm
                                 ${isChatOpen 
-                                    ? 'bg-blue-100 text-blue-700' 
-                                    : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'}`}
+                                    ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                                    : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-md hover:scale-[1.02] active:scale-[0.98]'}`}
                         >
-                            <MessageSquare size={18} />
+                            <Sparkles size={18} className={isChatOpen ? "" : "animate-pulse"} />
                             Refine with AI
                         </button>
 

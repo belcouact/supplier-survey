@@ -8,6 +8,19 @@ create table if not exists public.user_roles (
 -- 2. Enable RLS
 alter table public.user_roles enable row level security;
 
+-- Helper function to check admin status without recursion
+-- SECURITY DEFINER allows it to bypass RLS when reading user_roles
+create or replace function public.is_admin()
+returns boolean as $$
+begin
+  return exists (
+    select 1 from public.user_roles
+    where id = auth.uid()
+    and role in ('admin', 'super_admin')
+  );
+end;
+$$ language plpgsql security definer;
+
 -- 3. RLS Policies
 
 -- Allow users to read their own role
@@ -18,30 +31,19 @@ create policy "Users can read own role"
   using ( auth.uid() = id );
 
 -- Allow admins/super_admins to read all roles (for Admin Dashboard)
+-- Uses the security definer function to avoid infinite recursion
 drop policy if exists "Admins can read all roles" on public.user_roles;
 create policy "Admins can read all roles"
   on public.user_roles for select
   to authenticated
-  using (
-    exists (
-      select 1 from public.user_roles
-      where id = auth.uid()
-      and role in ('admin', 'super_admin')
-    )
-  );
+  using ( public.is_admin() );
 
 -- Allow admins to update roles
 drop policy if exists "Admins can update roles" on public.user_roles;
 create policy "Admins can update roles"
   on public.user_roles for update
   to authenticated
-  using (
-    exists (
-      select 1 from public.user_roles
-      where id = auth.uid()
-      and role in ('admin', 'super_admin')
-    )
-  );
+  using ( public.is_admin() );
 
 -- 4. Trigger to automatically create entry in user_roles when a new user signs up
 create or replace function public.handle_new_user()
