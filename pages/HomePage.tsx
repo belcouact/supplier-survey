@@ -15,8 +15,6 @@ export function HomePage({ user }: HomePageProps) {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const [debugInfo, setDebugInfo] = useState<string>('');
-
   useEffect(() => {
     if (user) {
       loadParticipatedSurveys();
@@ -25,17 +23,11 @@ export function HomePage({ user }: HomePageProps) {
 
   const loadParticipatedSurveys = async () => {
     setLoading(true);
-    setDebugInfo('');
     try {
-      console.log('Fetching results for user:', user.id);
       const results = await getUserResults(user.id);
-      console.log('Results:', results);
       
       const allTemplates = await getTemplates();
-      console.log('All Templates:', allTemplates);
       setAvailableSurveys(allTemplates);
-
-      setDebugInfo(`User: ${user.id}, Results: ${results.length}, Templates: ${allTemplates.length}`);
 
       if (results.length > 0) {
         const participatedIds = new Set(results.map(r => String(r.template_id)));
@@ -49,7 +41,6 @@ export function HomePage({ user }: HomePageProps) {
       }
     } catch (err) {
       console.error('Failed to load surveys', err);
-      setDebugInfo(`Error: ${JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
@@ -102,10 +93,6 @@ export function HomePage({ user }: HomePageProps) {
         <div className="space-y-8">
           <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
             <p className="text-slate-500 text-lg">You haven't participated in any surveys yet.</p>
-            <div className="mt-4 p-4 bg-gray-50 rounded text-left inline-block max-w-lg">
-               <p className="text-xs text-gray-500 font-mono mb-1">Debug Info:</p>
-               <pre className="text-xs text-gray-400 font-mono overflow-auto">{debugInfo}</pre>
-            </div>
           </div>
 
           {availableSurveys.length > 0 && (

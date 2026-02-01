@@ -9,7 +9,14 @@ export function generateShortId(length: number = 7): string {
   return result;
 }
 
-export function exportSurveyResultsToCSV(results: SurveyResult[], template: SurveyTemplate) {
+export const getText = (content: any): string => {
+  if (!content) return '';
+  if (typeof content === 'string') return content;
+  // Fallback for legacy multilingual data structure { en: "...", sc: "...", tc: "..." }
+  return content.en || Object.values(content)[0] as string || '';
+};
+
+export function exportSurveyResultsToCSV(results: SurveyResult[], template: SurveyTemplate, userEmailMap: Record<string, string> = {}) {
   if (!results.length || !template) return;
 
   // 1. Build Header Row
@@ -23,12 +30,12 @@ export function exportSurveyResultsToCSV(results: SurveyResult[], template: Surv
       return stringValue;
   };
 
-  const headers = ['User ID', 'Submitted At'];
+  const headers = ['User ID', 'Email', 'Submitted At'];
   const questionIds: string[] = [];
 
   template.schema.sections.forEach(section => {
     section.questions.forEach(q => {
-      headers.push(escapeCsv(q.text));
+      headers.push(escapeCsv(getText(q.text)));
       questionIds.push(q.id);
     });
   });
@@ -37,8 +44,10 @@ export function exportSurveyResultsToCSV(results: SurveyResult[], template: Surv
   const csvRows = [headers.join(',')];
 
   results.forEach(result => {
+    const email = userEmailMap[result.user_id] || '';
     const row = [
       escapeCsv(result.user_id),
+      escapeCsv(email),
       escapeCsv(result.updated_at || '')
     ];
 
@@ -58,7 +67,8 @@ export function exportSurveyResultsToCSV(results: SurveyResult[], template: Surv
 
   // 3. Create Blob and Download
   const csvString = csvRows.join('\n');
-  const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+  // Add BOM for Excel compatibility
+  const blob = new Blob(['\uFEFF' + csvString], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.setAttribute('href', url);

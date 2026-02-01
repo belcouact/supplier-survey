@@ -54,7 +54,7 @@ export function AdminPage({ user }: AdminPageProps) {
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === 'users' && isSuperAdmin) {
+    if ((activeTab === 'users' && isSuperAdmin) || activeTab === 'analytics') {
         loadUsers();
     }
   }, [activeTab, isSuperAdmin]);
@@ -696,7 +696,8 @@ export function AdminPage({ user }: AdminPageProps) {
                                     <button 
                                         onClick={() => {
                                             const template = templates.find(t => t.id === selectedAnalyticsTemplateId);
-                                            if (template) exportSurveyResultsToCSV(analyticsResults, template);
+                                            const userEmailMap = users.reduce((acc, u) => ({ ...acc, [u.id]: u.email }), {} as Record<string, string>);
+                                            if (template) exportSurveyResultsToCSV(analyticsResults, template, userEmailMap);
                                         }}
                                         className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                         disabled={analyticsResults.length === 0}
@@ -711,6 +712,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                         <thead className="bg-gray-50 text-gray-500 font-medium">
                                             <tr>
                                                 <th className="px-6 py-3">Respondent</th>
+                                                <th className="px-6 py-3">Email</th>
                                                 <th className="px-6 py-3">Date</th>
                                                 <th className="px-6 py-3">Actions</th>
                                             </tr>
@@ -720,6 +722,9 @@ export function AdminPage({ user }: AdminPageProps) {
                                                 <tr key={result.id} className="hover:bg-gray-50">
                                                     <td className="px-6 py-3 font-medium text-gray-900">
                                                         {result.user_id === 'anonymous' ? 'Anonymous User' : result.user_id}
+                                                    </td>
+                                                    <td className="px-6 py-3 text-gray-500">
+                                                        {users.find(u => u.id === result.user_id)?.email || '-'}
                                                     </td>
                                                     <td className="px-6 py-3 text-gray-500">
                                                         {new Date(result.updated_at).toLocaleString()}
@@ -1378,8 +1383,8 @@ export function AdminPage({ user }: AdminPageProps) {
 
         {/* Viewing Result Modal */}
         {viewingResult && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col relative">
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white w-full h-full md:w-[95vw] md:h-[95vh] md:rounded-2xl shadow-2xl overflow-hidden flex flex-col relative">
                      <button 
                         onClick={() => setViewingResult(null)}
                         className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full p-1"
@@ -1390,24 +1395,25 @@ export function AdminPage({ user }: AdminPageProps) {
                     <div className="p-6 border-b border-gray-200 bg-gray-50">
                         <h2 className="text-xl font-bold text-gray-900">Response Details</h2>
                         <div className="flex gap-4 mt-2 text-sm text-gray-500">
-                            <span>User: {viewingResult.user_id}</span>
+                            <span>User: {viewingResult.user_id === 'anonymous' ? 'Anonymous' : viewingResult.user_id}</span>
+                            <span>Email: {users.find(u => u.id === viewingResult.user_id)?.email || '-'}</span>
                             <span>Date: {new Date(viewingResult.updated_at).toLocaleString()}</span>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8">
-                        {templates.find(t => t.id === viewingResult.template_id)?.schema.sections.map((section) => (
+                        {templates.find(t => t.id === selectedAnalyticsTemplateId)?.schema.sections.map((section) => (
                             <div key={section.id} className="border-b border-gray-100 pb-6 last:border-0">
                                 <h3 className="font-bold text-lg text-gray-800 mb-4 bg-blue-50 inline-block px-3 py-1 rounded-lg">
                                     {getText(section.title)}
                                 </h3>
-                                <div className="space-y-4">
+                                <div className="space-y-0 divide-y divide-gray-100">
                                     {section.questions.map((q) => (
-                                        <div key={q.id} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <div className="md:col-span-1 text-sm font-medium text-gray-500">
+                                        <div key={q.id} className="grid grid-cols-1 md:grid-cols-2 gap-8 py-4">
+                                            <div className="text-sm font-medium text-gray-500">
                                                 {getText(q.text)}
                                             </div>
-                                            <div className="md:col-span-2 text-gray-900 font-medium">
+                                            <div className="text-gray-900 font-medium break-words">
                                                 {renderAnswer(q, viewingResult.answers[q.id])}
                                             </div>
                                         </div>
