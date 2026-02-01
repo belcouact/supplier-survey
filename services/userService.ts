@@ -2,10 +2,7 @@ import { supabase } from './supabaseClient';
 import { UserRole, UserProfile } from '../types';
 
 export const getAllUsers = async (): Promise<UserProfile[]> => {
-  const { data, error } = await supabase
-    .from('user_roles')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data, error } = await supabase.rpc('get_users_with_details');
 
   if (error) {
     console.error('Error fetching users:', error);
@@ -13,6 +10,15 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
   }
 
   return data as UserProfile[];
+};
+
+export const deleteUser = async (userId: string): Promise<void> => {
+  const { error } = await supabase.rpc('delete_user_by_id', { target_user_id: userId });
+
+  if (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
 };
 
 export const updateUserRole = async (userId: string, newRole: UserRole): Promise<void> => {

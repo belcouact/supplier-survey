@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { generateSurvey, refineSurvey, getAvailableModels } from '../services/aiService';
-import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, setActiveTemplate, updateSurveyTemplate } from '../services/templateService';
+import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateTemplateTitle, updateSurveyTemplate } from '../services/templateService';
 import { getSurveyResultsByTemplate } from '../services/resultService';
-import { getAllUsers, updateUserRole } from '../services/userService';
+import { getAllUsers, updateUserRole, deleteUser } from '../services/userService';
 import { Language, SurveySchema, SurveyQuestion, LocalizedText, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, ChevronLeft, ChevronRight, Users, Calendar } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -36,6 +36,8 @@ export function AdminPage({ language, user }: AdminPageProps) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -67,13 +69,31 @@ export function AdminPage({ language, user }: AdminPageProps) {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: UserRole) => {
+  const handleUpdateRole = async (newRole: UserRole) => {
+    if (!selectedUser) return;
     try {
-        await updateUserRole(userId, newRole);
-        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+        await updateUserRole(selectedUser.id, newRole);
+        setUsers(users.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
+        setSelectedUser({ ...selectedUser, role: newRole });
+        alert('Role updated successfully');
     } catch (err) {
         alert('Failed to update role');
         console.error(err);
+    }
+  };
+
+  const handleDeleteUser = async () => {
+    if (!selectedUser) return;
+    if (window.confirm(`Are you sure you want to delete user ${selectedUser.email}? This action cannot be undone.`)) {
+        try {
+            await deleteUser(selectedUser.id);
+            setUsers(users.filter(u => u.id !== selectedUser.id));
+            setIsUserModalOpen(false);
+            setSelectedUser(null);
+        } catch (err) {
+            alert('Failed to delete user');
+            console.error(err);
+        }
     }
   };
 
@@ -122,20 +142,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
   const [selectedModel, setSelectedModel] = useState<string>('deepseek');
   const [availableModels, setAvailableModels] = useState<string[]>(['deepseek', 'gemini']);
 
-  const handleSetActive = async (e: React.MouseEvent, templateId: string) => {
-      e.stopPropagation();
-      try {
-          await setActiveTemplate(templateId);
-          // Update local state to reflect change
-          setTemplates(templates.map(t => ({
-              ...t,
-              is_active: t.id === templateId
-          })));
-      } catch (err) {
-          alert('Failed to set active template');
-          console.error(err);
-      }
-  };
+
 
   const loadAnalytics = async (templateId: string) => {
       if (!templateId) return;
@@ -254,6 +261,14 @@ export function AdminPage({ language, user }: AdminPageProps) {
 
     try {
       const surveyData = await generateSurvey(userContext, selectedModel);
+      
+      // Ensure expiration date (default to 30 days from now)
+      if (!surveyData.expiration_date) {
+          const date = new Date();
+          date.setDate(date.getDate() + 30);
+          surveyData.expiration_date = date.toISOString();
+      }
+
       setGeneratedSurvey(surveyData);
       
       setChatHistory([
@@ -313,18 +328,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
     }
   };
 
-  const handleSelectActiveTemplate = async (template: SurveyTemplate) => {
-    try {
-        await setActiveTemplate(template.id);
-        setTemplates(templates.map(t => ({
-            ...t,
-            is_active: t.id === template.id
-        })));
-    } catch (err) {
-        alert('Failed to set active template');
-        console.error(err);
-    }
-  };
+
 
   const handleDeleteTemplate = async (e: React.MouseEvent, templateId: string) => {
     e.stopPropagation(); // Prevent opening the template
@@ -609,12 +613,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
                      </div>
 
                     {templates.map((template) => (
-                  <div key={template.id} className={`bg-white p-6 rounded-xl border shadow-sm hover:shadow-md transition-shadow group relative ${template.is_active ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-gray-200'}`}>
-                    {template.is_active && (
-                        <div className="absolute top-0 left-0 bg-blue-500 text-white text-xs px-3 py-1 rounded-br-lg rounded-tl-xl font-bold uppercase tracking-wider z-20">
-                            Active
-                        </div>
-                    )}
+                  <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
                     <div className="absolute top-4 right-4 flex gap-1 z-10">
                         <button 
                             onClick={(e) => handleDuplicateTemplate(e, template)}
@@ -645,18 +644,6 @@ export function AdminPage({ language, user }: AdminPageProps) {
                             className="flex-1 px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm font-medium"
                         >
                             Edit / Preview
-                        </button>
-                        <button 
-                            onClick={() => handleSelectActiveTemplate(template)}
-                            disabled={template.is_active}
-                            className={`flex-1 px-3 py-2 rounded text-sm font-medium flex items-center justify-center gap-1 transition-colors ${
-                                template.is_active 
-                                ? 'bg-green-100 text-green-700 cursor-default' 
-                                : 'bg-blue-600 text-white hover:bg-blue-700'
-                            }`}
-                        >
-                            {template.is_active ? <Check size={14} /> : null}
-                            {template.is_active ? 'Active' : 'Select as Active'}
                         </button>
                     </div>
                   </div>
@@ -767,6 +754,7 @@ export function AdminPage({ language, user }: AdminPageProps) {
                                     <th className="px-6 py-3">Email</th>
                                     <th className="px-6 py-3">Role</th>
                                     <th className="px-6 py-3">Created At</th>
+                                    <th className="px-6 py-3">Last Login</th>
                                     <th className="px-6 py-3">Actions</th>
                                 </tr>
                             </thead>
@@ -787,17 +775,16 @@ export function AdminPage({ language, user }: AdminPageProps) {
                                         <td className="px-6 py-3 text-gray-500">
                                             {u.created_at ? new Date(u.created_at).toLocaleDateString() : '-'}
                                         </td>
+                                        <td className="px-6 py-3 text-gray-500">
+                                            {u.last_sign_in_at ? new Date(u.last_sign_in_at).toLocaleString() : 'Never'}
+                                        </td>
                                         <td className="px-6 py-3">
-                                            <select
-                                                value={u.role || 'common_user'}
-                                                onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                                                disabled={u.email === 'admin@wlgore.com'} 
-                                                className="border rounded p-1 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                            <button
+                                                onClick={() => { setSelectedUser(u); setIsUserModalOpen(true); }}
+                                                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs font-medium transition-colors"
                                             >
-                                                <option value="common_user">Common User</option>
-                                                <option value="admin">Admin</option>
-                                                <option value="super_admin">Super Admin</option>
-                                            </select>
+                                                Manage
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
@@ -805,6 +792,57 @@ export function AdminPage({ language, user }: AdminPageProps) {
                         </table>
                     </div>
                     )}
+                </div>
+            )}
+            
+            {/* User Management Modal */}
+            {isUserModalOpen && selectedUser && (
+                <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+                        <button 
+                            onClick={() => { setIsUserModalOpen(false); setSelectedUser(null); }}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >
+                            <X size={24} />
+                        </button>
+                        
+                        <h2 className="text-xl font-bold text-gray-900 mb-1">Manage User</h2>
+                        <p className="text-sm text-gray-500 mb-6">{selectedUser.email}</p>
+                        
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Change Role</label>
+                                <select
+                                    value={selectedUser.role || 'common_user'}
+                                    onChange={(e) => handleUpdateRole(e.target.value as UserRole)}
+                                    disabled={selectedUser.email === 'admin@wlgore.com'} 
+                                    className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                                >
+                                    <option value="common_user">Common User</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="super_admin">Super Admin</option>
+                                </select>
+                                <p className="text-xs text-gray-500 mt-1">Select a new role to update immediately.</p>
+                            </div>
+
+                            <div className="pt-4 border-t border-gray-100">
+                                <h3 className="text-sm font-bold text-red-600 mb-2">Danger Zone</h3>
+                                <p className="text-xs text-gray-500 mb-3">Deleting a user is permanent and cannot be undone.</p>
+                                <button
+                                    onClick={handleDeleteUser}
+                                    disabled={selectedUser.email === 'admin@wlgore.com'}
+                                    className={`w-full py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                                        selectedUser.email === 'admin@wlgore.com'
+                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        : 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700'
+                                    }`}
+                                >
+                                    <Trash2 size={16} />
+                                    Delete User
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
           </div>
@@ -847,14 +885,17 @@ export function AdminPage({ language, user }: AdminPageProps) {
                     <div className="relative mb-6">
                         <textarea
                             value={userContext}
-                            onChange={(e) => setUserContext(e.target.value)}
-                            maxLength={30000}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                if (val.length > 30000) {
+                                    alert('Character limit exceeded (30,000 characters max). Please shorten your text.');
+                                    return;
+                                }
+                                setUserContext(val);
+                            }}
                             placeholder="e.g. I need to audit a fabric mill in Bangladesh producing organic cotton jersey. Focus on social compliance and water treatment capabilities."
                             className="w-full p-4 pb-8 text-gray-700 text-lg rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none min-h-[200px]"
                         />
-                        <div className="absolute bottom-3 right-4 text-xs text-gray-400 font-medium bg-white px-2 rounded-md border border-gray-100 shadow-sm">
-                            {userContext.length} / 30000 characters (~{Math.round(userContext.split(/\s+/).filter(w => w.length > 0).length)} words)
-                        </div>
                     </div>
                     
                     {error && (

@@ -72,6 +72,7 @@ export interface UserProfile {
   email: string;
   role?: UserRole;
   created_at?: string;
+  last_sign_in_at?: string;
 }
 
 export interface SurveyTemplate {

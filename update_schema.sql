@@ -14,9 +14,65 @@ CREATE TABLE IF NOT EXISTS user_roles (
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 
 -- Policies for user_roles
+-- Helper function to check super_admin status without recursion
+CREATE OR REPLACE FUNCTION public.is_super_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE id = auth.uid() AND role = 'super_admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Super admin can do anything
 CREATE POLICY "Super admin can do all on user_roles" ON user_roles
-  FOR ALL USING (auth.uid() IN (SELECT id FROM user_roles WHERE role = 'super_admin'));
+  FOR ALL USING (public.is_super_admin());
+
+-- Function to get all users with details (including last_sign_in_at)
+CREATE OR REPLACE FUNCTION public.get_users_with_details()
+RETURNS TABLE (
+  id UUID,
+  email TEXT,
+  role TEXT,
+  created_at TIMESTAMPTZ,
+  last_sign_in_at TIMESTAMPTZ
+) AS $$
+BEGIN
+  -- Check permission using the secure function
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  RETURN QUERY
+  SELECT 
+    ur.id,
+    ur.email,
+    ur.role,
+    ur.created_at,
+    au.last_sign_in_at
+  FROM public.user_roles ur
+  JOIN auth.users au ON ur.id = au.id
+  ORDER BY ur.created_at DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to delete a user by ID
+CREATE OR REPLACE FUNCTION public.delete_user_by_id(target_user_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'Access denied';
+  END IF;
+
+  -- Delete from user_roles first (manual cascade)
+  DELETE FROM public.user_roles WHERE id = target_user_id;
+  
+  -- Delete from auth.users
+  DELETE FROM auth.users WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Users can read their own role
 CREATE POLICY "Users can read own role" ON user_roles
