@@ -1321,26 +1321,26 @@ export function AdminPage({ language, user }: AdminPageProps) {
                     <div className="flex flex-col items-center space-y-6">
                         <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-200">
                              <QRCodeCanvas 
-                                value={`${window.location.origin}/${shareSurvey.short_id}`} 
-                                size={200}
-                                level={"H"}
-                                includeMargin={true}
-                             />
-                        </div>
-                        
-                        <div className="w-full space-y-2">
-                            <label className="text-sm font-medium text-gray-700 block">Survey URL</label>
-                            <div className="flex gap-2">
-                                <input 
-                                    readOnly 
-                                    value={`${window.location.origin}/${shareSurvey.short_id}`}
-                                    className="flex-1 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600 focus:outline-none font-mono"
-                                />
-                                <button
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(`${window.location.origin}/${shareSurvey.short_id}`);
-                                        alert('Link copied to clipboard!');
-                                    }}
+                               value={`${window.location.origin}/apps/survey-gen/${shareSurvey.short_id}`} 
+                               size={200}
+                               level={"H"}
+                               includeMargin={true}
+                            />
+                       </div>
+                       
+                       <div className="w-full space-y-2">
+                           <label className="text-sm font-medium text-gray-700 block">Survey URL</label>
+                           <div className="flex gap-2">
+                               <input 
+                                   readOnly 
+                                   value={`${window.location.origin}/apps/survey-gen/${shareSurvey.short_id}`}
+                                   className="flex-1 p-2.5 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600 focus:outline-none font-mono"
+                               />
+                               <button
+                                   onClick={() => {
+                                       navigator.clipboard.writeText(`${window.location.origin}/apps/survey-gen/${shareSurvey.short_id}`);
+                                       alert('Link copied to clipboard!');
+                                   }}
                                     className="p-2.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 border border-blue-200 transition-colors"
                                     title="Copy Link"
                                 >
