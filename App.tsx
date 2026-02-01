@@ -6,6 +6,7 @@ import { AdminPage } from './pages/AdminPage';
 import { SurveyPage } from './pages/SurveyPage';
 import { HomePage } from './pages/HomePage';
 import { supabase } from './services/supabaseClient';
+import { getUserRole } from './services/userService';
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
@@ -29,34 +30,39 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdminStatus = (currentUser: any) => {
+  const checkAdminStatus = async (currentUser: any) => {
     if (!currentUser) {
         setIsAdmin(false);
         return;
     }
     const email = currentUser.email;
-    const role = currentUser.user_metadata?.role;
     
-    if (email === 'admin@wlgore.com' || role === 'admin' || role === 'super_admin') {
+    // Check user_roles table first
+    const dbRole = await getUserRole(currentUser.id);
+    
+    // Fallback to metadata if no DB role found (for legacy support or race conditions)
+    const metaRole = currentUser.user_metadata?.role;
+    
+    if (email === 'admin@wlgore.com' || dbRole === 'admin' || dbRole === 'super_admin' || metaRole === 'admin' || metaRole === 'super_admin') {
       setIsAdmin(true);
     } else {
       setIsAdmin(false);
     }
   };
 
-  const handleLoginSuccess = (userData: any) => {
+  const handleLoginSuccess = async (userData: any) => {
     setUser(userData);
-    checkAdminStatus(userData);
+    await checkAdminStatus(userData);
     
     // Redirect logic if admin just logged in
+    // Note: checkAdminStatus is async now, so we need to fetch role again or rely on the state update flow
+    // But for immediate redirect we can check quickly
     const email = userData.email;
-    const role = userData.user_metadata?.role;
-    if (email === 'admin@wlgore.com' || role === 'admin' || role === 'super_admin') {
+    const dbRole = await getUserRole(userData.id);
+    const metaRole = userData.user_metadata?.role;
+    
+    if (email === 'admin@wlgore.com' || dbRole === 'admin' || dbRole === 'super_admin' || metaRole === 'admin' || metaRole === 'super_admin') {
       const basePath = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
-      // We can just navigate using window or router if we were inside context, but we are outside.
-      // Actually, since we render Routes below, we don't strictly need to force reload unless we want to ensure state.
-      // But typically React Router handles it if state updates.
-      // Let's just let the state update trigger re-render and user can navigate or we can redirect if on home.
       if (window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
          window.location.href = `${basePath}admin`;
       }
