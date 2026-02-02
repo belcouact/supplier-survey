@@ -67,10 +67,14 @@ BEGIN
     RAISE EXCEPTION 'Access denied';
   END IF;
 
-  -- Delete from user_roles first (manual cascade)
   DELETE FROM public.user_roles WHERE id = target_user_id;
   
-  -- Delete from auth.users
+  -- Delete from profiles if it exists (using dynamic SQL to avoid errors if table is missing)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'profiles') THEN
+    EXECUTE 'DELETE FROM public.profiles WHERE id = $1' USING target_user_id;
+  END IF;
+
+  DELETE FROM public.templates WHERE created_by = target_user_id;
   DELETE FROM auth.users WHERE id = target_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
