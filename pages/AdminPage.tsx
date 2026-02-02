@@ -5,9 +5,10 @@ import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, up
 import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser, getUserRole } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
-import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain } from 'lucide-react';
+import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole, ActivityLog } from '../types';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { getActivityLogs } from '../services/activityLogService';
 
 interface AdminPageProps {
   user: any;
@@ -15,7 +16,7 @@ interface AdminPageProps {
 
 export function AdminPage({ user }: AdminPageProps) {
   // --- State ---
-  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users' | 'activity'>('create');
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -45,6 +46,10 @@ export function AdminPage({ user }: AdminPageProps) {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
 
+  // --- Activity Log State ---
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+
   useEffect(() => {
     if (user) {
         getUserRole(user.id).then(role => {
@@ -58,7 +63,22 @@ export function AdminPage({ user }: AdminPageProps) {
     if ((activeTab === 'users' && isSuperAdmin) || activeTab === 'analytics') {
         loadUsers();
     }
+    if (activeTab === 'activity' && isSuperAdmin) {
+        loadActivityLogs();
+    }
   }, [activeTab, isSuperAdmin]);
+
+  const loadActivityLogs = async () => {
+    setIsLoadingLogs(true);
+    try {
+        const logs = await getActivityLogs();
+        setActivityLogs(logs);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsLoadingLogs(false);
+    }
+  };
 
   const loadUsers = async () => {
     setIsLoadingUsers(true);
@@ -637,6 +657,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     Analytics
                 </button>
                 {isSuperAdmin && (
+                    <>
                     <button
                         onClick={() => setActiveTab('users')}
                         className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
@@ -647,6 +668,17 @@ export function AdminPage({ user }: AdminPageProps) {
                     >
                         Users
                     </button>
+                    <button
+                        onClick={() => setActiveTab('activity')}
+                        className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                            activeTab === 'activity' 
+                            ? 'border-blue-600 text-blue-600' 
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        Activity Log
+                    </button>
+                    </>
                 )}
             </div>
 
@@ -886,6 +918,74 @@ export function AdminPage({ user }: AdminPageProps) {
                                         </td>
                                     </tr>
                                 ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    )}
+                </div>
+            )}
+
+            {activeTab === 'activity' && isSuperAdmin && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-fade-in">
+                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <h3 className="font-bold text-gray-800">Activity Log</h3>
+                        <button 
+                            onClick={loadActivityLogs} 
+                            className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
+                            title="Refresh Logs"
+                        >
+                            <Undo size={16} className="rotate-0" />
+                        </button>
+                    </div>
+                    
+                    {isLoadingLogs ? (
+                         <div className="text-center py-12 text-gray-400">Loading logs...</div>
+                    ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-500 font-medium">
+                                <tr>
+                                    <th className="px-6 py-3">Time</th>
+                                    <th className="px-6 py-3">Admin</th>
+                                    <th className="px-6 py-3">Action</th>
+                                    <th className="px-6 py-3">Target</th>
+                                    <th className="px-6 py-3">Details</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {activityLogs.map((log) => (
+                                    <tr key={log.id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                                            {new Date(log.created_at).toLocaleString()}
+                                        </td>
+                                        <td className="px-6 py-3 font-medium text-gray-900">
+                                            {log.admin_email || 'Unknown'}
+                                        </td>
+                                        <td className="px-6 py-3">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                log.action.includes('CREATE') ? 'bg-green-100 text-green-700' :
+                                                log.action.includes('UPDATE') ? 'bg-blue-100 text-blue-700' :
+                                                log.action.includes('DELETE') ? 'bg-red-100 text-red-700' :
+                                                'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {log.action.replace(/_/g, ' ')}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-3 text-gray-500">
+                                            {log.target_type}: {log.target_id?.substring(0, 8)}...
+                                        </td>
+                                        <td className="px-6 py-3 text-gray-500 max-w-xs truncate" title={JSON.stringify(log.details, null, 2)}>
+                                            {log.details ? JSON.stringify(log.details) : '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activityLogs.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                            No activity logs found.
+                                        </td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>

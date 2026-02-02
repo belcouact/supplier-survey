@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient';
 import { UserRole, UserProfile } from '../types';
+import { logActivity } from './activityLogService';
 
 export const getAllUsers = async (): Promise<UserProfile[]> => {
   const { data, error } = await supabase.rpc('get_users_with_details');
@@ -19,6 +20,8 @@ export const deleteUser = async (userId: string): Promise<void> => {
     console.error('Error deleting user:', error);
     throw error;
   }
+
+  await logActivity('DELETE_USER', userId, 'USER');
 };
 
 export const updateUserRole = async (userId: string, newRole: UserRole): Promise<void> => {
@@ -32,6 +35,8 @@ export const updateUserRole = async (userId: string, newRole: UserRole): Promise
     console.error('Error updating user role in DB:', dbError);
     throw dbError;
   }
+
+  await logActivity('UPDATE_USER_ROLE', userId, 'USER', { newRole });
 
   // Note: We cannot directly update auth.users metadata from the client side 
   // unless we are the user themselves or using a secure edge function.

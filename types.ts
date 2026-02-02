@@ -30,6 +30,17 @@ export interface SurveySchema {
   expiration_date?: string;
 }
 
+export interface ActivityLog {
+  id: string;
+  admin_id: string;
+  action: string;
+  target_id?: string;
+  target_type?: 'TEMPLATE' | 'USER';
+  details?: any;
+  created_at: string;
+  admin_email?: string;
+}
+
 // Generic container for answers to a dynamic form
 export interface SurveyAnswers {
   [questionId: string]: string | string[] | number | boolean;

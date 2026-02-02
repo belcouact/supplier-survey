@@ -2,6 +2,7 @@
 import { supabase } from './supabaseClient';
 import { SurveySchema } from '../types';
 import { generateShortId } from '../utils/helpers';
+import { logActivity } from './activityLogService';
 
 export async function saveSurveyTemplate(survey: SurveySchema) {
   const shortId = generateShortId();
@@ -24,6 +25,10 @@ export async function saveSurveyTemplate(survey: SurveySchema) {
     throw error;
   }
 
+  if (data && data.length > 0) {
+    await logActivity('CREATE_TEMPLATE', data[0].id, 'TEMPLATE', { title: survey.title });
+  }
+
   return data;
 }
 
@@ -42,6 +47,10 @@ export async function updateSurveyTemplate(id: string, survey: SurveySchema) {
   if (error) {
     console.error('Error updating template:', error);
     throw error;
+  }
+
+  if (data && data.length > 0) {
+    await logActivity('UPDATE_TEMPLATE', id, 'TEMPLATE', { title: survey.title });
   }
 
   return data;
@@ -99,6 +108,8 @@ export async function deleteTemplate(id: string) {
     console.error('Error deleting template:', error);
     throw error;
   }
+  
+  await logActivity('DELETE_TEMPLATE', id, 'TEMPLATE');
 }
 
 export async function duplicateTemplate(originalTemplate: any, userId: string) {
@@ -150,6 +161,10 @@ export async function duplicateTemplate(originalTemplate: any, userId: string) {
     throw error;
   }
 
+  if (data && data.length > 0) {
+      await logActivity('CREATE_TEMPLATE', data[0].id, 'TEMPLATE', { title: newSchema.title, isDuplicate: true, originalId: originalTemplate.id });
+  }
+
   return data[0];
 }
 
@@ -170,6 +185,8 @@ export async function updateTemplateTitle(id: string, newTitle: string, schema: 
       console.error('Error updating template title:', error);
       throw error;
     }
+
+    await logActivity('UPDATE_TEMPLATE', id, 'TEMPLATE', { title: newTitle, updateType: 'title_only' });
   
     return data[0];
   }
