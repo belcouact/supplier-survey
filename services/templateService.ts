@@ -106,7 +106,7 @@ export async function getTemplates(userId?: string, role?: string) {
 
 
 
-export async function deleteTemplate(id: string) {
+export async function deleteTemplate(id: string, title?: string) {
   const { error } = await supabase
     .from('templates')
     .delete()
@@ -117,7 +117,7 @@ export async function deleteTemplate(id: string) {
     throw error;
   }
   
-  await logActivity('DELETE_TEMPLATE', id, 'TEMPLATE');
+  await logActivity('DELETE_TEMPLATE', id, 'TEMPLATE', title ? { title } : undefined);
 }
 
 export async function duplicateTemplate(originalTemplate: any, userId: string) {

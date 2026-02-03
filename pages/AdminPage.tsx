@@ -8,7 +8,7 @@ import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole, ActivityLog } from '../types';
 import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { getActivityLogs } from '../services/activityLogService';
+import { getActivityLogs, deleteActivityLog } from '../services/activityLogService';
 
 interface AdminPageProps {
   user: any;
@@ -89,6 +89,18 @@ export function AdminPage({ user }: AdminPageProps) {
         console.error(err);
     } finally {
         setIsLoadingUsers(false);
+    }
+  };
+
+  const handleDeleteLog = async (logId: string) => {
+    if (window.confirm('Are you sure you want to delete this activity log? This action cannot be undone.')) {
+        try {
+            await deleteActivityLog(logId);
+            setActivityLogs(activityLogs.filter(log => log.id !== logId));
+        } catch (err) {
+            alert('Failed to delete activity log');
+            console.error(err);
+        }
     }
   };
 
@@ -415,7 +427,8 @@ export function AdminPage({ user }: AdminPageProps) {
     e.stopPropagation(); // Prevent opening the template
     if (window.confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
         try {
-            await deleteTemplate(templateId);
+            const template = templates.find(t => String(t.id) === templateId);
+            await deleteTemplate(templateId, template?.title);
             setTemplates(templates.filter(t => String(t.id) !== templateId));
         } catch (err) {
             alert('Failed to delete template');
@@ -950,6 +963,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                     <th className="px-6 py-3">Action</th>
                                     <th className="px-6 py-3">Target</th>
                                     <th className="px-6 py-3">Details</th>
+                                    <th className="px-6 py-3 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -979,11 +993,20 @@ export function AdminPage({ user }: AdminPageProps) {
                                         <td className="px-6 py-3 text-gray-500 font-mono text-xs whitespace-pre-wrap">
                                             {log.details ? JSON.stringify(log.details, null, 2) : '-'}
                                         </td>
+                                        <td className="px-6 py-3 text-right">
+                                            <button 
+                                                onClick={() => handleDeleteLog(log.id)}
+                                                className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded hover:bg-red-50"
+                                                title="Delete Log"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {activityLogs.length === 0 && (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                                             No activity logs found.
                                         </td>
                                     </tr>

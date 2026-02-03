@@ -51,3 +51,15 @@ export const getActivityLogs = async (): Promise<ActivityLog[]> => {
     admin_email: log.admin_profile?.email
   }));
 };
+
+export const deleteActivityLog = async (id: string) => {
+  const { error } = await supabase
+    .from('admin_activity_logs')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Error deleting activity log:', error);
+    throw error;
+  }
+};
