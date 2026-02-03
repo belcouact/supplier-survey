@@ -6,6 +6,13 @@ import { logActivity } from './activityLogService';
 
 export async function saveSurveyTemplate(survey: SurveySchema) {
   const shortId = generateShortId();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error('User must be authenticated to save a template');
+  }
+
   const { data, error } = await supabase
     .from('templates')
     .insert([
@@ -16,6 +23,7 @@ export async function saveSurveyTemplate(survey: SurveySchema) {
         short_id: shortId,
         expiration_date: survey.expiration_date,
         created_at: new Date().toISOString(),
+        created_by: user.id,
       },
     ])
     .select();
