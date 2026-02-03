@@ -972,10 +972,10 @@ export function AdminPage({ user }: AdminPageProps) {
                                             </span>
                                         </td>
                                         <td className="px-6 py-3 text-gray-500">
-                                            {log.target_type}: {log.target_id?.substring(0, 8)}...
+                                            {log.target_type}: {log.target_id}
                                         </td>
-                                        <td className="px-6 py-3 text-gray-500 max-w-xs truncate" title={JSON.stringify(log.details, null, 2)}>
-                                            {log.details ? JSON.stringify(log.details) : '-'}
+                                        <td className="px-6 py-3 text-gray-500 font-mono text-xs whitespace-pre-wrap">
+                                            {log.details ? JSON.stringify(log.details, null, 2) : '-'}
                                         </td>
                                     </tr>
                                 ))}
