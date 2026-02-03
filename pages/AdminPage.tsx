@@ -854,7 +854,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                                     </td>
                                                     <td className="px-6 py-3">
                                                         <button 
-                                                            onClick={handleAnalyzeResults}
+                                                            onClick={() => handleAnalyzeResults(result)}
                                                             disabled={isAnalyzing}
                                                             className={`flex items-center gap-2 px-3 py-1.5 bg-white border border-purple-200 rounded-lg text-xs font-medium text-purple-700 hover:bg-purple-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isAnalyzing ? 'animate-pulse' : ''}`}
                                                             title="Analyze results with AI"

@@ -56,6 +56,7 @@ export interface SurveyResult {
   template_id: string | number;
   user_id: string | null; // null for anonymous, UUID for authenticated
   answers: SurveyAnswers;
+  status?: 'saved' | 'submitted';
   updated_at?: string;
 }
 

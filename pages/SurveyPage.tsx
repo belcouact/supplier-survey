@@ -128,11 +128,11 @@ export function SurveyPage({ user }: SurveyPageProps) {
     // Simple visual feedback could be improved, but alert is functional for now
     try {
       if (user && templateId) {
-        await saveSurveyResult(templateId, user.id, answers);
+        await saveSurveyResult(templateId, user.id, answers, 'saved');
         alert('Progress saved successfully!');
       } else if (templateId) {
         // Warning for anonymous users
-        await saveSurveyResult(templateId, 'anonymous', answers);
+        await saveSurveyResult(templateId, 'anonymous', answers, 'saved');
         alert('Progress saved! Note: As an anonymous user, your progress is shared with other anonymous users. Please log in for a private session.');
       }
     } catch (err) {

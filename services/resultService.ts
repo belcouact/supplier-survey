@@ -8,7 +8,7 @@ export const TABLE_NAME = 'survey_results';
  * If a result exists for this user and template, it updates it.
  * Otherwise, it inserts a new row.
  */
-export async function saveSurveyResult(templateId: string, userId: string, answers: SurveyAnswers) {
+export async function saveSurveyResult(templateId: string, userId: string, answers: SurveyAnswers, status: 'saved' | 'submitted' = 'saved') {
   // Check if a result already exists
   let query = supabase
     .from(TABLE_NAME)
@@ -31,6 +31,7 @@ export async function saveSurveyResult(templateId: string, userId: string, answe
       .from(TABLE_NAME)
       .update({
         answers,
+        status,
         updated_at: new Date().toISOString(),
       })
       .eq('id', existingData.id)
@@ -47,6 +48,7 @@ export async function saveSurveyResult(templateId: string, userId: string, answe
           template_id: templateId,
           user_id: dbUserId,
           answers,
+          status,
           updated_at: new Date().toISOString(),
         },
       ])
