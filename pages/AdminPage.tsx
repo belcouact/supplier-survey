@@ -416,7 +416,7 @@ export function AdminPage({ user }: AdminPageProps) {
     if (window.confirm('Are you sure you want to delete this template? This action cannot be undone.')) {
         try {
             await deleteTemplate(templateId);
-            setTemplates(templates.filter(t => t.id !== templateId));
+            setTemplates(templates.filter(t => String(t.id) !== templateId));
         } catch (err) {
             alert('Failed to delete template');
             console.error(err);
@@ -972,7 +972,9 @@ export function AdminPage({ user }: AdminPageProps) {
                                             </span>
                                         </td>
                                         <td className="px-6 py-3 text-gray-500">
-                                            {log.target_type}: {log.target_id}
+                                            {log.target_type === 'TEMPLATE' && log.details?.title 
+                                                ? <span title={`ID: ${log.target_id}`}>{log.details.title}</span>
+                                                : `${log.target_type}: ${log.target_id}`}
                                         </td>
                                         <td className="px-6 py-3 text-gray-500 font-mono text-xs whitespace-pre-wrap">
                                             {log.details ? JSON.stringify(log.details, null, 2) : '-'}
