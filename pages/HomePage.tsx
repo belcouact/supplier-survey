@@ -13,6 +13,7 @@ export function HomePage({ user }: HomePageProps) {
   const [participatedSurveys, setParticipatedSurveys] = useState<SurveyTemplate[]>([]);
   const [availableSurveys, setAvailableSurveys] = useState<SurveyTemplate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [surveyIdInput, setSurveyIdInput] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,9 +75,33 @@ export function HomePage({ user }: HomePageProps) {
         <h1 className="text-4xl font-bold text-slate-900 mb-4">
           Welcome to Survey by AI
         </h1>
-        <p className="text-xl text-slate-600 max-w-2xl leading-relaxed">
+        <p className="text-xl text-slate-600 max-w-2xl leading-relaxed mb-8">
           Please log in to view your survey history or access a survey directly via the link provided to you.
         </p>
+
+        <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <label className="block text-left text-sm font-medium text-gray-700 mb-2">Enter Survey ID</label>
+            <div className="flex gap-2">
+                <input 
+                    type="text" 
+                    value={surveyIdInput}
+                    onChange={(e) => setSurveyIdInput(e.target.value)}
+                    placeholder="e.g. 123456"
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                />
+                <button 
+                    onClick={() => {
+                        if (surveyIdInput.trim()) {
+                            window.location.href = `https://study-llm.me/apps/survey-gen/${surveyIdInput.trim()}`;
+                        }
+                    }}
+                    disabled={!surveyIdInput.trim()}
+                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    Go
+                </button>
+            </div>
+        </div>
       </div>
     );
   }

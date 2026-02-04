@@ -6,9 +6,10 @@ import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser, getUserRole } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole, ActivityLog } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity, PieChart } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getActivityLogs, deleteActivityLog } from '../services/activityLogService';
+import { StatisticsModal } from '../components/StatisticsModal';
 
 interface AdminPageProps {
   user: any;
@@ -37,6 +38,7 @@ export function AdminPage({ user }: AdminPageProps) {
   const [resultChatInput, setResultChatInput] = useState('');
   const [isResultChatLoading, setIsResultChatLoading] = useState(false);
   const resultChatEndRef = useRef<HTMLDivElement>(null);
+  const [showStatisticsModal, setShowStatisticsModal] = useState(false);
 
   // --- User Management State ---
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -104,14 +106,15 @@ export function AdminPage({ user }: AdminPageProps) {
     }
   };
 
-  const handleAnalyzeResults = async () => {
+  const handleAnalyzeResults = async (specificResult?: SurveyResult) => {
     const template = templates.find(t => String(t.id) === selectedAnalyticsTemplateId);
     if (!template) return;
     
     setIsAnalyzing(true);
     try {
-        // We might want to filter results or limit them if there are too many
-        const result = await analyzeSurveyResults(template, analyticsResults, selectedModel);
+        // Analyze specific result if provided, otherwise analyze all results
+        const resultsToAnalyze = specificResult ? [specificResult] : analyticsResults;
+        const result = await analyzeSurveyResults(template, resultsToAnalyze, selectedModel);
         setAnalysisResult(result);
         setShowAnalysisModal(true);
     } catch (err) {
@@ -1714,6 +1717,14 @@ export function AdminPage({ user }: AdminPageProps) {
                 </div>
             </div>
         )}
+
+        {/* Statistics Modal */}
+        <StatisticsModal 
+            isOpen={showStatisticsModal}
+            onClose={() => setShowStatisticsModal(false)}
+            results={analyticsResults}
+            schema={templates.find(t => String(t.id) === selectedAnalyticsTemplateId)?.schema || { title: '', description: '', sections: [] }}
+        />
 
         {/* Result Chat Sidebar */}
         {showResultChat && (
