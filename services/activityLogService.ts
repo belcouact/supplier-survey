@@ -29,16 +29,20 @@ export const logActivity = async (
   }
 };
 
-export const getActivityLogs = async (): Promise<ActivityLog[]> => {
-  const { data, error } = await supabase
+export const getActivityLogs = async (page: number = 1, pageSize: number = 10): Promise<{ data: ActivityLog[], count: number }> => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  const { data, error, count } = await supabase
     .from('admin_activity_logs')
     .select(`
       *,
       admin_profile:profiles (
         email
       )
-    `)
-    .order('created_at', { ascending: false });
+    `, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to);
 
   if (error) {
     console.error('Error fetching activity logs:', error);
@@ -46,10 +50,12 @@ export const getActivityLogs = async (): Promise<ActivityLog[]> => {
   }
 
   // Flatten the structure to match ActivityLog interface
-  return data.map((log: any) => ({
+  const formattedData = data.map((log: any) => ({
     ...log,
     admin_email: log.admin_profile?.email
   }));
+
+  return { data: formattedData, count: count || 0 };
 };
 
 export const deleteActivityLog = async (id: string) => {

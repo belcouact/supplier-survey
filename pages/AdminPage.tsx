@@ -56,6 +56,9 @@ export function AdminPage({ user }: AdminPageProps) {
   // --- Activity Log State ---
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [logPage, setLogPage] = useState(1);
+  const [logTotalCount, setLogTotalCount] = useState(0);
+  const LOG_PAGE_SIZE = 10;
 
   useEffect(() => {
     if (user) {
@@ -90,11 +93,13 @@ export function AdminPage({ user }: AdminPageProps) {
     }
   };
 
-  const loadActivityLogs = async () => {
+  const loadActivityLogs = async (page = 1) => {
     setIsLoadingLogs(true);
     try {
-        const logs = await getActivityLogs();
-        setActivityLogs(logs);
+        const { data, count } = await getActivityLogs(page, LOG_PAGE_SIZE);
+        setActivityLogs(data);
+        setLogTotalCount(count);
+        setLogPage(page);
     } catch (err) {
         console.error(err);
     } finally {
@@ -118,7 +123,7 @@ export function AdminPage({ user }: AdminPageProps) {
     if (window.confirm('Are you sure you want to delete this activity log? This action cannot be undone.')) {
         try {
             await deleteActivityLog(logId);
-            setActivityLogs(activityLogs.filter(log => log.id !== logId));
+            loadActivityLogs(logPage);
         } catch (err) {
             alert('Failed to delete activity log');
             console.error(err);
@@ -1077,7 +1082,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                         <h3 className="font-bold text-gray-800">Activity Log</h3>
                         <button 
-                            onClick={loadActivityLogs} 
+                            onClick={() => loadActivityLogs(logPage)} 
                             className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors"
                             title="Refresh Logs"
                         >
@@ -1088,6 +1093,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     {isLoadingLogs ? (
                          <div className="text-center py-12 text-gray-400">Loading logs...</div>
                     ) : (
+                    <>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-500 font-medium">
@@ -1148,6 +1154,28 @@ export function AdminPage({ user }: AdminPageProps) {
                             </tbody>
                         </table>
                     </div>
+                    <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center">
+                        <span className="text-sm text-gray-500">
+                            Showing {Math.min((logPage - 1) * LOG_PAGE_SIZE + 1, logTotalCount)} to {Math.min(logPage * LOG_PAGE_SIZE, logTotalCount)} of {logTotalCount} entries
+                        </span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => loadActivityLogs(logPage - 1)}
+                                disabled={logPage === 1 || isLoadingLogs}
+                                className="px-3 py-1 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Previous
+                            </button>
+                            <button
+                                onClick={() => loadActivityLogs(logPage + 1)}
+                                disabled={(logPage * LOG_PAGE_SIZE >= logTotalCount) || isLoadingLogs}
+                                className="px-3 py-1 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        </div>
+                    </div>
+                    </>
                     )}
                 </div>
             )}
