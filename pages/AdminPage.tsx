@@ -707,7 +707,7 @@ export function AdminPage({ user }: AdminPageProps) {
             </div>
 
             {/* Tabs */}
-            <div className="flex overflow-x-auto whitespace-nowrap pb-2 mb-8 border-b border-gray-200 no-scrollbar">
+            <div className="flex justify-center overflow-x-auto whitespace-nowrap pb-2 mb-8 border-b border-gray-200 no-scrollbar">
                 <button
                     onClick={() => setActiveTab('create')}
                     className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 flex-shrink-0 ${
@@ -780,7 +780,7 @@ export function AdminPage({ user }: AdminPageProps) {
 
                     {templates.map((template) => (
                   <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
-                    <div className="absolute top-4 right-4 flex gap-1 z-10">
+                    <div className="absolute top-4 right-4 flex gap-1 z-10 bg-white/80 backdrop-blur-sm p-1 rounded-full shadow-sm">
                         <button 
                             onClick={(e) => { e.stopPropagation(); setShareSurvey(template); }}
                             className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors"
@@ -814,7 +814,14 @@ export function AdminPage({ user }: AdminPageProps) {
                         </button>
                     </div>
 
-                    <h3 className="text-xl font-bold text-gray-800 pr-28">{template.title}</h3>
+                    <div className="pt-10">
+                        {template.created_by && users.length > 0 && (
+                            <div className="text-xs text-blue-600 font-medium mb-1">
+                                {users.find(u => u.id === template.created_by)?.email || 'Unknown User'}
+                            </div>
+                        )}
+                        <h3 className="text-xl font-bold text-gray-800">{template.title}</h3>
+                    </div>
                     
                     <p className="text-gray-500 mt-2 line-clamp-2 text-sm">{template.description}</p>
                     <div className="mt-4 flex justify-between items-center text-xs text-gray-400">

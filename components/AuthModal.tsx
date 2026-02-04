@@ -60,7 +60,8 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
         if (data.user) {
           // If auto-confirm is on, we can log them in. Otherwise, tell them to check email.
           // For this demo, we'll assume they can proceed or show a message.
-          alert('Registration successful! Please check your email for confirmation if required.');
+          // Email sending is handled by Supabase settings, not client code.
+          alert('Registration successful!');
           onLoginSuccess(data.user); // Optimistic login for demo flow if allowed
           onClose();
         }

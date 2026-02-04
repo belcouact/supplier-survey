@@ -77,6 +77,7 @@ export interface SurveyTemplate {
   description: string;
   schema: SurveySchema;
   created_at: string;
+  created_by: string;
   is_active: boolean;
   expiration_date?: string;
 }
