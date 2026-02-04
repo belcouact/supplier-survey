@@ -72,16 +72,15 @@ export function HomePage({ user }: HomePageProps) {
             <div className="p-2 bg-brand-50 rounded-xl mr-3">
               <Sparkles className="w-6 h-6 text-brand-600" />
             </div>
-            <span className="text-brand-900 font-semibold tracking-tight">Next Generation Survey Platform</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay">
-            Feedback powered by <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">Artificial Intelligence</span>
+            Survey powered by <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>
-            Experience the future of data collection. Seamless, intelligent, and designed for humans.
+            Experience the future of data collection. Seamless, intelligent, and efficient.
           </p>
 
           <div className="w-full max-w-md mx-auto mt-12 animate-slide-up-delay" style={{ animationDelay: '0.6s' }}>
