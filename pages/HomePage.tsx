@@ -126,7 +126,7 @@ export function HomePage({ user }: HomePageProps) {
         
         <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-12 animate-fade-in">
           <h1 className="text-3xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay whitespace-nowrap">
-            Survey powered by <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
+            The New Survey, Powered by <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-loose animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>

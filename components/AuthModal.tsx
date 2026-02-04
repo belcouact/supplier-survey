@@ -158,15 +158,6 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
           <div className="space-y-1">
             <div className="flex justify-between items-center ml-1">
                 <label className="block text-sm font-bold text-slate-700">Password</label>
-                {isLogin && (
-                    <button 
-                        type="button"
-                        onClick={() => toggleMode('reset')}
-                        className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
-                    >
-                        Forgot password?
-                    </button>
-                )}
             </div>
             <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -231,7 +222,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
         )}
 
         {!resetSent && (
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center space-y-4">
           <p className="text-slate-500 text-sm">
             {isReset 
                 ? <button onClick={() => toggleMode('login')} className="text-brand-600 font-bold hover:underline">Back to Sign In</button>
@@ -241,6 +232,17 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
                   )
             }
           </p>
+          
+          {isLogin && !isReset && (
+            <div>
+                <button 
+                    onClick={() => toggleMode('reset')}
+                    className="text-sm text-slate-400 hover:text-brand-600 font-medium transition-colors"
+                >
+                    Forgot your password?
+                </button>
+            </div>
+          )}
         </div>
         )}
       </div>
