@@ -4,7 +4,9 @@ import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
 import { getUserRole } from '../services/userService';
 import { SurveyResult, SurveyTemplate } from '../types';
-import { ClipboardList, Clock, ArrowRight, CheckCircle2, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { ClipboardList, Clock, ArrowRight, CheckCircle2, LayoutGrid, List as ListIcon, Mail, Loader2, Check } from 'lucide-react';
+import { sendEmail } from '../services/emailService';
+import { RequestAccessModal } from '../components/RequestAccessModal';
 
 interface HomePageProps {
   user: any;
@@ -15,6 +17,10 @@ export function HomePage({ user }: HomePageProps) {
   const [availableSurveys, setAvailableSurveys] = useState<SurveyTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [surveyIdInput, setSurveyIdInput] = useState('');
+  const [canCreate, setCanCreate] = useState(false);
+  const [requestingAccess, setRequestingAccess] = useState(false);
+  const [accessRequested, setAccessRequested] = useState(false);
+  const [showAccessModal, setShowAccessModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +36,8 @@ export function HomePage({ user }: HomePageProps) {
       const role = await getUserRole(user.id);
       
       const effectiveRole = role === 'super_admin' ? 'super_admin' : (role || 'common_user');
+      setCanCreate(effectiveRole === 'admin' || effectiveRole === 'super_admin');
+
       const allTemplates = await getTemplates(user.id, effectiveRole);
       setAvailableSurveys(allTemplates || []);
 
@@ -167,13 +175,77 @@ export function HomePage({ user }: HomePageProps) {
     );
   }
 
+  const handleRequestAccess = async (justification: string) => {
+    if (requestingAccess || accessRequested) return;
+    
+    setRequestingAccess(true);
+    try {
+      const response = await sendEmail({
+        recipients: ['aluo@wlgore.com'],
+        subject: 'Request Access to Create Survey',
+        body: `Hello,\n\nI would like to request access to create surveys for the Supplier Survey App.\n\nMy Email: ${user.email}\nUser ID: ${user.id}\n\nJustification:\n${justification}`,
+        userId: user.id,
+        fromName: user.email || 'Supplier Survey User'
+      });
+
+      if (response.success) {
+        setAccessRequested(true);
+        setShowAccessModal(false);
+      } else {
+        alert('Failed to send request: ' + response.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred.');
+    } finally {
+      setRequestingAccess(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-12 min-h-screen">
-      <div className="flex items-center justify-between mb-10 animate-fade-in">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 animate-fade-in">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Survey participation</h2>
           <p className="text-slate-500 mt-2 text-lg">Manage and track your survey participation.</p>
         </div>
+        
+        {!canCreate && (
+            <button 
+                onClick={() => setShowAccessModal(true)}
+                disabled={requestingAccess || accessRequested}
+                className={`flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 transition-all text-sm font-bold group self-start md:self-auto
+                  ${accessRequested 
+                    ? 'bg-green-50 text-green-600 border-green-200 cursor-default' 
+                    : 'hover:text-brand-600 hover:border-brand-200 hover:shadow-sm'
+                  }
+                  ${requestingAccess ? 'opacity-70 cursor-wait' : ''}
+                `}
+            >
+                <div className={`p-1.5 rounded-lg transition-colors
+                  ${accessRequested 
+                    ? 'bg-green-100 text-green-600' 
+                    : 'bg-slate-50 text-slate-400 group-hover:bg-brand-50 group-hover:text-brand-500'
+                  }
+                `}>
+                    {requestingAccess ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : accessRequested ? (
+                      <Check size={18} />
+                    ) : (
+                      <Mail size={18} />
+                    )}
+                </div>
+                <span>
+                  {requestingAccess 
+                    ? 'Sending Request...' 
+                    : accessRequested 
+                      ? 'Request Sent' 
+                      : 'Request Creator Access'
+                  }
+                </span>
+            </button>
+        )}
       </div>
       
       {loading ? (
@@ -207,6 +279,13 @@ export function HomePage({ user }: HomePageProps) {
             {renderSurveyList(participatedSurveys, true)}
         </div>
       )}
+      
+      <RequestAccessModal 
+        isOpen={showAccessModal} 
+        onClose={() => setShowAccessModal(false)}
+        onSubmit={handleRequestAccess}
+        isLoading={requestingAccess}
+      />
     </div>
   );
 }
