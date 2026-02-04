@@ -802,6 +802,15 @@ export function AdminPage({ user }: AdminPageProps) {
                                 <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                                     <h3 className="font-bold text-gray-800">Response History</h3>
                                     <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setShowStatisticsModal(true)}
+                                            disabled={analyticsResults.length === 0}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-blue-200 rounded-lg text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                            title="View Statistics"
+                                        >
+                                            <PieChart size={16} />
+                                            Statistics
+                                        </button>
                                         <button 
                                             onClick={() => setShowResultChat(true)}
                                             disabled={analyticsResults.length === 0}
