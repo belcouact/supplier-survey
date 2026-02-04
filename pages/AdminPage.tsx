@@ -6,10 +6,11 @@ import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser, getUserRole } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole, ActivityLog } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity, PieChart, UserPlus } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity, PieChart, UserPlus, Eye } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getActivityLogs, deleteActivityLog } from '../services/activityLogService';
 import { StatisticsModal } from '../components/StatisticsModal';
+import { SurveyForm } from '../components/SurveyForm';
 
 interface AdminPageProps {
   user: any;
@@ -17,7 +18,7 @@ interface AdminPageProps {
 
 export function AdminPage({ user }: AdminPageProps) {
   // --- State ---
-  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users' | 'activity'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users' | 'activity' | 'gallery'>('create');
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -25,6 +26,8 @@ export function AdminPage({ user }: AdminPageProps) {
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [templates, setTemplates] = useState<SurveyTemplate[]>([]);
+  const [allTemplates, setAllTemplates] = useState<SurveyTemplate[]>([]);
+  const [previewTemplate, setPreviewTemplate] = useState<SurveyTemplate | null>(null);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
   const [shareSurvey, setShareSurvey] = useState<SurveyTemplate | null>(null);
@@ -70,7 +73,22 @@ export function AdminPage({ user }: AdminPageProps) {
     if (activeTab === 'activity' && isSuperAdmin) {
         loadActivityLogs();
     }
+    if (activeTab === 'gallery') {
+        loadAllTemplates();
+    }
   }, [activeTab, isSuperAdmin]);
+
+  const loadAllTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+        const data = await getTemplates();
+        setAllTemplates(data || []);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsLoadingTemplates(false);
+    }
+  };
 
   const loadActivityLogs = async () => {
     setIsLoadingLogs(true);
@@ -688,6 +706,16 @@ export function AdminPage({ user }: AdminPageProps) {
                     Create
                 </button>
                 <button
+                    onClick={() => setActiveTab('gallery')}
+                    className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
+                        activeTab === 'gallery' 
+                        ? 'border-blue-600 text-blue-600' 
+                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                    }`}
+                >
+                    Templates Gallery
+                </button>
+                <button
                     onClick={() => setActiveTab('analytics')}
                     className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 ${
                         activeTab === 'analytics' 
@@ -792,6 +820,39 @@ export function AdminPage({ user }: AdminPageProps) {
                 ))}
               </div>
             ))}
+
+            {activeTab === 'gallery' && (
+                isLoadingTemplates ? (
+                    <div className="text-center py-12 text-gray-400">Loading templates...</div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {allTemplates.map(template => (
+                            <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative flex flex-col h-full">
+                                <h3 className="text-xl font-bold text-gray-800 mb-2">{template.title}</h3>
+                                <p className="text-gray-500 text-sm mb-4 line-clamp-3 flex-1">{template.description}</p>
+                                <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
+                                    <span>Created: {new Date(template.created_at).toLocaleDateString()}</span>
+                                    <span className={`px-2 py-1 rounded-full ${template.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        {template.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => setPreviewTemplate(template)}
+                                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
+                                >
+                                    <Eye size={18} />
+                                    Preview
+                                </button>
+                            </div>
+                        ))}
+                        {allTemplates.length === 0 && (
+                            <div className="col-span-full text-center py-12 text-gray-400">
+                                No templates found.
+                            </div>
+                        )}
+                    </div>
+                )
+            )}
 
             {activeTab === 'analytics' && (
                 <div className="space-y-6">
@@ -1681,6 +1742,32 @@ export function AdminPage({ user }: AdminPageProps) {
                     <p className="text-xs text-center text-gray-400 mt-2">
                         AI can update the survey structure or content.
                     </p>
+                </div>
+            </div>
+        )}
+
+        {/* Preview Template Modal */}
+        {previewTemplate && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col relative">
+                    <div className="flex items-center justify-between p-4 border-b">
+                        <h2 className="text-xl font-bold text-gray-900">Preview: {previewTemplate.title}</h2>
+                        <button 
+                            onClick={() => setPreviewTemplate(null)}
+                            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <X size={24} className="text-gray-500" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+                        <SurveyForm 
+                            survey={previewTemplate.schema} 
+                            answers={{}} 
+                            onAnswerChange={() => {}} 
+                            onSubmit={(e) => e.preventDefault()}
+                            readOnly={true}
+                        />
+                    </div>
                 </div>
             </div>
         )}
