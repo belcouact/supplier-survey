@@ -55,8 +55,6 @@ export default function App() {
     await checkAdminStatus(userData);
     
     // Redirect logic if admin just logged in
-    // Note: checkAdminStatus is async now, so we need to fetch role again or rely on the state update flow
-    // But for immediate redirect we can check quickly
     const email = userData.email;
     const dbRole = await getUserRole(userData.id);
     const metaRole = userData.user_metadata?.role;
@@ -84,7 +82,7 @@ export default function App() {
 
   return (
     <Router basename={import.meta.env.BASE_URL}>
-      <div className="min-h-screen bg-gray-50 text-slate-800 flex flex-col font-sans">
+      <div className="min-h-screen text-slate-800 flex flex-col font-sans">
         <Navbar 
           user={user} 
           isAdmin={isAdmin}
@@ -99,14 +97,16 @@ export default function App() {
           defaultEmail={defaultAuthEmail}
         />
 
-        <Routes>
-          <Route path="/" element={<HomePage user={user} />} />
-          <Route path="/:shortId" element={<SurveyPage user={user} />} />
-          <Route 
-            path="/admin" 
-            element={isAdmin ? <AdminPage user={user} /> : <Navigate to="/" replace />} 
-          />
-        </Routes>
+        <div className="flex-grow pt-20">
+          <Routes>
+            <Route path="/" element={<HomePage user={user} />} />
+            <Route path="/:shortId" element={<SurveyPage user={user} />} />
+            <Route 
+              path="/admin" 
+              element={isAdmin ? <AdminPage user={user} /> : <Navigate to="/" replace />} 
+            />
+          </Routes>
+        </div>
       </div>
     </Router>
   );

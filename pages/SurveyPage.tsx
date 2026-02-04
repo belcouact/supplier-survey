@@ -4,7 +4,7 @@ import { SurveyForm } from '../components/SurveyForm';
 import { SurveySchema, SurveyAnswers, QuestionType } from '../types';
 import { getSurveyResult, saveSurveyResult } from '../services/resultService';
 import { getTemplateByShortId } from '../services/templateService';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, AlertTriangle } from 'lucide-react';
 
 interface SurveyPageProps {
   user: any;
@@ -125,13 +125,12 @@ export function SurveyPage({ user }: SurveyPageProps) {
   const handleSave = async () => {
     if (readOnly) return;
     
-    // Simple visual feedback could be improved, but alert is functional for now
     try {
       if (user && templateId) {
         await saveSurveyResult(templateId, user.id, answers, 'saved');
+        // Toast notification would be better here
         alert('Progress saved successfully!');
       } else if (templateId) {
-        // Warning for anonymous users
         await saveSurveyResult(templateId, 'anonymous', answers, 'saved');
         alert('Progress saved! Note: As an anonymous user, your progress is shared with other anonymous users. Please log in for a private session.');
       }
@@ -143,43 +142,45 @@ export function SurveyPage({ user }: SurveyPageProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-gray-500 animate-pulse">Loading survey...</div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] animate-fade-in">
+        <Loader2 className="w-12 h-12 text-brand-600 animate-spin mb-4" />
+        <div className="text-slate-500 font-medium">Loading survey...</div>
       </div>
     );
   }
 
   if (error || !survey) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] p-4 text-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Error</h2>
-        <p className="text-gray-600">{error || 'Survey not found.'}</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center animate-fade-in">
+        <div className="w-20 h-20 bg-rose-50 rounded-full flex items-center justify-center mb-6">
+            <AlertTriangle className="w-10 h-10 text-rose-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">Survey Unavailable</h2>
+        <p className="text-slate-500 max-w-md">{error || 'The survey you are looking for could not be found.'}</p>
       </div>
     );
   }
 
   if (formSubmitted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 text-center animate-fade-in">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-          <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center animate-fade-in">
+        <div className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-50 rounded-full flex items-center justify-center mb-8 shadow-soft animate-scale-in">
+          <CheckCircle2 className="w-12 h-12 text-green-600" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-4">Survey Completed!</h2>
-        <p className="text-lg text-slate-600 max-w-md">
-          Thank you for your feedback. Your responses have been successfully recorded.
+        <h2 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-6 tracking-tight">Thank You!</h2>
+        <p className="text-xl text-slate-600 max-w-lg leading-relaxed">
+          Your feedback has been successfully recorded. We appreciate your time and contribution.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto">
       {readOnly && (
-        <div className="max-w-6xl mx-auto mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-center text-amber-800">
-            <AlertCircle className="w-5 h-5 mr-2" />
-            <span className="font-medium">This survey has expired. You are viewing it in Read-Only mode.</span>
+        <div className="mb-8 bg-amber-50 border border-amber-200 rounded-2xl p-6 flex items-start md:items-center text-amber-900 shadow-sm animate-fade-in">
+            <AlertCircle className="w-6 h-6 mr-3 flex-shrink-0 mt-0.5 md:mt-0" />
+            <span className="font-medium text-lg">This survey has expired. You are currently viewing it in <span className="font-bold">Read-Only</span> mode.</span>
         </div>
       )}
       

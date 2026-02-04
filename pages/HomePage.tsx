@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
 import { SurveyResult, SurveyTemplate } from '../types';
-import { ClipboardList, Clock, AlertCircle } from 'lucide-react';
+import { ClipboardList, Clock, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface HomePageProps {
   user: any;
@@ -32,10 +32,7 @@ export function HomePage({ user }: HomePageProps) {
 
       if (results.length > 0) {
         const participatedIds = new Set(results.map(r => String(r.template_id)));
-        // We need to match either id or short_id because some legacy data might store short_id as template_id
-        // Also ensure we compare strings to strings
         const filtered = allTemplates.filter(t => participatedIds.has(String(t.id)) || participatedIds.has(String(t.short_id)));
-        console.log('Filtered:', filtered);
         setParticipatedSurveys(filtered);
       } else {
         setParticipatedSurveys([]);
@@ -59,101 +56,134 @@ export function HomePage({ user }: HomePageProps) {
   };
 
   const handleCardClick = (survey: SurveyTemplate) => {
-    // Navigate to survey page
-    // If we have a short_id, use it, otherwise use ID (though router expects short_id usually)
-    // We'll update router to handle both or just short_id.
     const id = survey.short_id || survey.id;
     navigate(`/${id}`);
   };
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center animate-fade-in">
-        <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-8 shadow-sm">
-          <ClipboardList className="w-12 h-12 text-blue-600" />
-        </div>
-        <h1 className="text-4xl font-bold text-slate-900 mb-4">
-          Welcome to Survey by AI
-        </h1>
-        <p className="text-xl text-slate-600 max-w-2xl leading-relaxed mb-8">
-          Please log in to view your survey history or access a survey directly via the link provided to you.
-        </p>
-
-        <div className="w-full max-w-md bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <label className="block text-left text-sm font-medium text-gray-700 mb-2">Enter Survey ID</label>
-            <div className="flex gap-2">
-                <input 
-                    type="text" 
-                    value={surveyIdInput}
-                    onChange={(e) => setSurveyIdInput(e.target.value)}
-                    placeholder="e.g. 123456"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
-                />
-                <button 
-                    onClick={() => {
-                        if (surveyIdInput.trim()) {
-                            window.location.href = `https://study-llm.me/apps/survey-gen/${surveyIdInput.trim()}`;
-                        }
-                    }}
-                    disabled={!surveyIdInput.trim()}
-                    className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    Go
-                </button>
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-6 relative overflow-hidden">
+        {/* Decorative Background Elements */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow"></div>
+        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        
+        <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-8 animate-fade-in">
+          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-soft mb-4 animate-slide-up">
+            <div className="p-2 bg-brand-50 rounded-xl mr-3">
+              <Sparkles className="w-6 h-6 text-brand-600" />
             </div>
+            <span className="text-brand-900 font-semibold tracking-tight">Next Generation Survey Platform</span>
+          </div>
+
+          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay">
+            Feedback powered by <br/>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">Artificial Intelligence</span>
+          </h1>
+          
+          <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>
+            Experience the future of data collection. Seamless, intelligent, and designed for humans.
+          </p>
+
+          <div className="w-full max-w-md mx-auto mt-12 animate-slide-up-delay" style={{ animationDelay: '0.6s' }}>
+            <div className="glass-panel p-2 rounded-2xl shadow-2xl flex items-center gap-2 transform transition-all focus-within:scale-105 duration-300">
+              <input 
+                  type="text" 
+                  value={surveyIdInput}
+                  onChange={(e) => setSurveyIdInput(e.target.value)}
+                  placeholder="Enter Survey Code"
+                  className="flex-1 px-6 py-4 bg-transparent border-none text-lg text-slate-800 placeholder-slate-400 focus:ring-0 outline-none w-full"
+              />
+              <button 
+                  onClick={() => {
+                      if (surveyIdInput.trim()) {
+                          window.location.href = `https://study-llm.me/apps/survey-gen/${surveyIdInput.trim()}`;
+                      }
+                  }}
+                  disabled={!surveyIdInput.trim()}
+                  className="px-8 py-4 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-brand-500/30 flex items-center gap-2"
+              >
+                  Start
+                  <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="mt-4 text-sm text-slate-500 font-medium">
+              Have a code? Enter it above to begin instantly.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h2 className="text-2xl font-bold text-slate-800 mb-6">My Surveys</h2>
+    <div className="container mx-auto px-4 py-12 min-h-screen">
+      <div className="flex items-center justify-between mb-10 animate-fade-in">
+        <div>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Dashboard</h2>
+          <p className="text-slate-500 mt-2 text-lg">Manage and track your survey participation.</p>
+        </div>
+      </div>
       
       {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex flex-col items-center justify-center py-24 space-y-4">
+          <div className="w-12 h-12 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+          <p className="text-brand-600 font-medium animate-pulse">Loading your surveys...</p>
         </div>
       ) : participatedSurveys.length === 0 ? (
-        <div className="space-y-8">
-          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
-            <p className="text-slate-500 text-lg">You haven't participated in any surveys yet.</p>
+        <div className="space-y-12 animate-slide-up">
+          <div className="text-center py-16 bg-white rounded-3xl shadow-soft border border-slate-100/50">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ClipboardList className="w-10 h-10 text-slate-400" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">No History Found</h3>
+            <p className="text-slate-500 text-lg max-w-md mx-auto">You haven't participated in any surveys yet. Check out the available ones below!</p>
           </div>
 
           {availableSurveys.length > 0 && (
             <div>
-              <h3 className="text-xl font-bold text-slate-800 mb-4">Available Surveys</h3>
-              <p className="text-slate-600 mb-4">Select a survey to start or continue (if previously saved while logged in).</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {availableSurveys.map(survey => {
+              <div className="flex items-center gap-3 mb-8">
+                <div className="h-8 w-1 bg-brand-500 rounded-full"></div>
+                <h3 className="text-2xl font-bold text-slate-800">Available Surveys</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {availableSurveys.map((survey, idx) => {
                   const expired = isExpired(survey.expiration_date);
                   return (
                     <div 
                       key={survey.id}
                       onClick={() => handleCardClick(survey)}
-                      className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 relative group overflow-hidden`}
+                      className="group bg-white rounded-3xl shadow-soft border border-slate-100 p-8 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-brand-200 relative overflow-hidden"
+                      style={{ animationDelay: `${idx * 0.1}s` }}
                     >
-                      <div className={`absolute top-0 left-0 px-3 py-1 text-xs font-semibold rounded-br-lg ${
+                      <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-bold rounded-bl-2xl ${
                         expired 
-                          ? 'bg-red-100 text-red-700' 
-                          : 'bg-green-100 text-green-700'
+                          ? 'bg-red-50 text-red-600' 
+                          : 'bg-emerald-50 text-emerald-600'
                       }`}>
-                        {expired ? 'Expired' : 'Open'}
+                        {expired ? 'EXPIRED' : 'ACTIVE'}
                       </div>
 
-                      <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2 line-clamp-2">
-                        {getText(survey.title)}
-                      </h3>
-                      
-                      <p className="text-slate-600 text-sm mb-4 line-clamp-3">
-                        {getText(survey.description)}
-                      </p>
+                      <div className="mb-6">
+                        <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-brand-100 transition-colors">
+                            <ClipboardList className="w-6 h-6 text-brand-600" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-brand-700 transition-colors">
+                          {getText(survey.title)}
+                        </h3>
+                        <p className="text-slate-500 text-sm line-clamp-3 leading-relaxed">
+                          {getText(survey.description)}
+                        </p>
+                      </div>
 
-                      <div className="flex items-center text-xs text-slate-500 mt-auto pt-4 border-t border-slate-100">
-                        <Clock className="w-3 h-3 mr-1" />
-                        <span>
-                          {expired ? 'Review Only' : 'Click to Start'}
-                        </span>
+                      <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                        <div className="flex items-center text-xs text-slate-400 font-medium">
+                          <Clock className="w-3.5 h-3.5 mr-1.5" />
+                          <span>{expired ? 'Closed' : 'Open for submissions'}</span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-all">
+                            <ArrowRight className="w-4 h-4" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -163,37 +193,44 @@ export function HomePage({ user }: HomePageProps) {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {participatedSurveys.map(survey => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-slide-up">
+          {participatedSurveys.map((survey, idx) => {
             const expired = isExpired(survey.expiration_date);
             return (
               <div 
                 key={survey.id}
                 onClick={() => handleCardClick(survey)}
-                className={`bg-white rounded-xl shadow-sm border border-slate-200 p-6 cursor-pointer transition-all hover:shadow-md hover:border-blue-300 relative group overflow-hidden`}
+                className="group bg-white rounded-3xl shadow-soft border border-slate-100 p-8 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-brand-200 relative overflow-hidden"
+                style={{ animationDelay: `${idx * 0.1}s` }}
               >
-                {/* Status Badge */}
-                <div className={`absolute top-0 left-0 px-3 py-1 text-xs font-semibold rounded-br-lg ${
+                 <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-bold rounded-bl-2xl ${
                   expired 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-green-100 text-green-700'
+                    ? 'bg-red-50 text-red-600' 
+                    : 'bg-brand-50 text-brand-600'
                 }`}>
-                  {expired ? 'Expired' : 'Active'}
+                  {expired ? 'EXPIRED' : 'PARTICIPATED'}
                 </div>
 
-                <h3 className="text-lg font-bold text-slate-900 mt-4 mb-2 line-clamp-2">
-                  {getText(survey.title)}
-                </h3>
-                
-                <p className="text-slate-600 text-sm mb-4 line-clamp-3">
-                  {getText(survey.description)}
-                </p>
+                <div className="mb-6">
+                   <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
+                      <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-brand-700 transition-colors">
+                    {getText(survey.title)}
+                  </h3>
+                  <p className="text-slate-500 text-sm line-clamp-3 leading-relaxed">
+                    {getText(survey.description)}
+                  </p>
+                </div>
 
-                <div className="flex items-center text-xs text-slate-500 mt-auto pt-4 border-t border-slate-100">
-                  <Clock className="w-3 h-3 mr-1" />
-                  <span>
-                    {expired ? 'Review Only' : 'Click to Update'}
-                  </span>
+                <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                  <div className="flex items-center text-xs text-slate-400 font-medium">
+                    <Clock className="w-3.5 h-3.5 mr-1.5" />
+                    <span>{expired ? 'Review Only' : 'Update Response'}</span>
+                  </div>
+                   <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-all">
+                      <ArrowRight className="w-4 h-4" />
+                  </div>
                 </div>
               </div>
             );

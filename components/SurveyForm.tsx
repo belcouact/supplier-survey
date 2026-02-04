@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SurveySchema, SurveyAnswers, QuestionType } from '../types';
-import { Check, ChevronRight, ChevronLeft, Save } from 'lucide-react';
+import { Check, ChevronRight, ChevronLeft, Save, HelpCircle } from 'lucide-react';
 
 interface SurveyFormProps {
   survey: SurveySchema;
@@ -22,17 +22,17 @@ export function SurveyForm({
   readOnly = false
 }: SurveyFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
+  const [direction, setDirection] = useState<'forward' | 'backward'>('forward');
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   // Reset step if survey changes
   useEffect(() => {
     setCurrentStep(0);
   }, [survey.id]);
 
-  // Helper to handle legacy multilingual data if present
   const getText = (content: any): string => {
     if (!content) return '';
     if (typeof content === 'string') return content;
-    // Fallback for legacy data structure { en: "...", sc: "...", tc: "..." }
     return content.en || Object.values(content)[0] as string || '';
   };
 
@@ -41,6 +41,7 @@ export function SurveyForm({
 
   const handleNext = () => {
     if (currentStep < totalSteps - 1) {
+      setDirection('forward');
       setCurrentStep(prev => prev + 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -48,176 +49,167 @@ export function SurveyForm({
 
   const handlePrev = () => {
     if (currentStep > 0) {
+      setDirection('backward');
       setCurrentStep(prev => prev - 1);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const tabsContainerRef = React.useRef<HTMLDivElement>(null);
-
-  const scrollTabs = (direction: 'left' | 'right') => {
-    if (tabsContainerRef.current) {
-        const scrollAmount = 200;
-        const currentScroll = tabsContainerRef.current.scrollLeft;
-        const newScroll = direction === 'right' ? currentScroll + scrollAmount : currentScroll - scrollAmount;
-        
-        tabsContainerRef.current.scrollTo({
-            left: newScroll,
-            behavior: 'smooth'
-        });
     }
   };
 
   const currentSection = survey.sections[currentStep];
 
   if (!currentSection) {
-    return <div className="text-center p-8 text-gray-500">No sections available in this survey.</div>;
+    return <div className="text-center p-12 text-slate-400 font-medium">No sections available in this survey.</div>;
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-6xl mx-auto space-y-8 animate-fade-in font-sans">
+    <form onSubmit={onSubmit} className="max-w-5xl mx-auto font-sans pb-24">
       
-      {/* Header & Progress */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 mb-8">
-        <div className="text-center mb-8 space-y-2">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">
+      {/* Header Card */}
+      <div className="bg-white rounded-3xl shadow-soft border border-slate-100 p-8 md:p-10 mb-8 animate-fade-in relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-primary-500"></div>
+        <div className="text-center space-y-4 mb-8">
+          <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
             {getText(survey.title)}
           </h1>
-          <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-slate-500 max-w-3xl mx-auto leading-relaxed">
             {getText(survey.description)}
           </p>
         </div>
 
         {/* Progress Bar */}
-        <div className="max-w-3xl mx-auto">
-          <div className="flex justify-between text-sm font-medium text-gray-500 mb-2">
-            <span>Section {currentStep + 1} of {totalSteps}</span>
+        <div className="max-w-2xl mx-auto">
+          <div className="flex justify-between text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+            <span>Step {currentStep + 1} of {totalSteps}</span>
             <span>{progress}% Completed</span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
             <div 
-              className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out" 
+              className="bg-brand-600 h-2 rounded-full transition-all duration-700 ease-in-out shadow-[0_0_10px_rgba(124,58,237,0.5)]" 
               style={{ width: `${progress}%` }}
             ></div>
           </div>
         </div>
 
-        {/* Tabs / Stepper */}
-        <div className="mt-8 flex items-center justify-center gap-2">
-            <button 
-                type="button"
-                onClick={() => scrollTabs('left')}
-                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
-            >
-                <ChevronLeft size={20} />
-            </button>
-
-            <div 
-                ref={tabsContainerRef}
-                className="flex overflow-x-auto pb-2 gap-2 no-scrollbar scroll-smooth w-full md:w-auto px-1"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-                <style>{`
-                    .no-scrollbar::-webkit-scrollbar {
-                        display: none;
-                    }
-                `}</style>
-                {survey.sections.map((section, idx) => {
-                    const isActive = idx === currentStep;
-                    const isCompleted = idx < currentStep;
-                    return (
-                    <button
-                        key={section.id}
-                        type="button"
-                        onClick={() => setCurrentStep(idx)}
-                        className={`flex-shrink-0 flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
-                        ${isActive 
-                            ? 'bg-blue-600 text-white shadow-md' 
-                            : isCompleted 
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100' 
-                            : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                        }`}
-                    >
-                        {isCompleted && <Check size={14} className="mr-1.5" />}
-                        <span className="mr-2">{idx + 1}.</span>
-                        {getText(section.title)}
-                    </button>
-                    );
-                })}
-            </div>
-
-            <button 
-                type="button"
-                onClick={() => scrollTabs('right')}
-                className="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors flex-shrink-0"
-            >
-                <ChevronRight size={20} />
-            </button>
+        {/* Step Indicators */}
+        <div className="mt-8 flex justify-center gap-2 overflow-x-auto pb-2 no-scrollbar mask-gradient">
+           {survey.sections.map((section, idx) => {
+              const isActive = idx === currentStep;
+              const isCompleted = idx < currentStep;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => {
+                    setDirection(idx > currentStep ? 'forward' : 'backward');
+                    setCurrentStep(idx);
+                  }}
+                  className={`group flex items-center px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 whitespace-nowrap flex-shrink-0
+                    ${isActive 
+                      ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200 shadow-sm' 
+                      : isCompleted 
+                      ? 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200' 
+                      : 'bg-white text-slate-400 border border-transparent hover:bg-slate-50'
+                    }`}
+                >
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center mr-2 text-xs font-bold transition-colors
+                    ${isActive ? 'bg-brand-600 text-white' : isCompleted ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}
+                  `}>
+                    {isCompleted ? <Check size={14} /> : idx + 1}
+                  </span>
+                  {getText(section.title)}
+                </button>
+              );
+            })}
         </div>
       </div>
 
       {/* Active Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden transition-all min-h-[400px]">
-        <div className="bg-gray-50 px-6 py-4 border-b border-gray-100">
-          <h2 className="text-2xl font-bold text-slate-800">{getText(currentSection.title)}</h2>
+      <div 
+        key={currentSection.id}
+        className={`bg-white rounded-3xl shadow-soft border border-slate-100 overflow-hidden min-h-[400px] animate-slide-up`}
+      >
+        <div className="bg-slate-50/50 px-8 py-6 border-b border-slate-100 flex items-center">
+            <div className="w-10 h-10 rounded-xl bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-xl mr-4 shadow-sm">
+                {currentStep + 1}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800">{getText(currentSection.title)}</h2>
         </div>
         
-        <div className="p-6 md:p-10 space-y-8">
+        <div className="p-8 md:p-12 space-y-12">
           {currentSection.questions.map((q, qIdx) => (
-            <div key={q.id} className="space-y-3 pb-6 border-b border-gray-100 last:border-0 last:pb-0">
-              <label className="block text-lg font-semibold text-gray-800">
-                <span className="text-gray-400 mr-3 text-base">{currentStep + 1}.{qIdx + 1}</span>
-                {getText(q.text)}
-                {q.required && <span className="text-red-500 ml-1">*</span>}
-              </label>
+            <div key={q.id} className="space-y-4 animate-fade-in" style={{ animationDelay: `${qIdx * 0.1}s` }}>
+              <div className="flex flex-col md:flex-row md:items-start gap-4">
+                  <span className="flex-shrink-0 text-sm font-bold text-slate-400 mt-1.5 uppercase tracking-wide">
+                      Q{currentStep + 1}.{qIdx + 1}
+                  </span>
+                  <div className="flex-1 space-y-2">
+                    <label className="block text-xl font-semibold text-slate-800 leading-snug">
+                        {getText(q.text)}
+                        {q.required && <span className="text-rose-500 ml-1.5 text-lg" title="Required">*</span>}
+                    </label>
+                    {q.type === 'description' && (
+                        <div className="text-slate-600 leading-relaxed whitespace-pre-wrap bg-slate-50 p-4 rounded-xl border border-slate-100 text-base">
+                            {getText(q.default_value) || getText(q.placeholder)}
+                        </div>
+                    )}
+                  </div>
+              </div>
 
-              <div className="mt-3 ml-0 md:ml-8">
+              <div className="md:ml-12">
                 {/* Text Inputs */}
                 {(q.type === 'short_text' || q.type === 'number') && (
-                  <input
-                    type={q.type === 'number' ? 'number' : 'text'}
-                    className="w-full max-w-2xl px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white disabled:bg-gray-100 disabled:text-gray-500"
-                    placeholder={getText(q.placeholder)}
-                    value={answers[q.id] as string || ''}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAnswerChange(q.id, e.target.value, q.type)}
-                    required={q.required}
-                    disabled={readOnly}
-                  />
+                  <div className="relative group max-w-2xl">
+                    <input
+                      type={q.type === 'number' ? 'number' : 'text'}
+                      className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none placeholder:text-slate-300 font-medium"
+                      placeholder={getText(q.placeholder)}
+                      value={answers[q.id] as string || ''}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAnswerChange(q.id, e.target.value, q.type)}
+                      required={q.required}
+                      disabled={readOnly}
+                    />
+                  </div>
                 )}
 
                 {/* Long Text */}
                 {q.type === 'long_text' && (
-                  <textarea
-                    className="w-full max-w-3xl px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-gray-50 focus:bg-white min-h-[120px] disabled:bg-gray-100 disabled:text-gray-500"
-                    placeholder={getText(q.placeholder)}
-                    value={answers[q.id] as string || ''}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onAnswerChange(q.id, e.target.value, q.type)}
-                    required={q.required}
-                    disabled={readOnly}
-                  />
+                  <div className="relative group max-w-3xl">
+                    <textarea
+                      className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-800 focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none placeholder:text-slate-300 min-h-[160px] font-medium resize-y"
+                      placeholder={getText(q.placeholder)}
+                      value={answers[q.id] as string || ''}
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onAnswerChange(q.id, e.target.value, q.type)}
+                      required={q.required}
+                      disabled={readOnly}
+                    />
+                  </div>
                 )}
 
                 {/* Single Choice */}
                 {q.type === 'single_choice' && (
-                  <div className="space-y-3 max-w-3xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
                     {q.options?.map((opt) => (
-                      <label key={opt.value} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all group
+                      <label key={opt.value} className={`relative flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 group overflow-hidden
                         ${answers[q.id] === opt.value 
-                          ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500' 
-                          : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
+                          ? 'bg-brand-50/50 border-brand-500 shadow-sm' 
+                          : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'}
                         ${readOnly ? 'cursor-default opacity-80' : ''}`}
                       >
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-4 transition-colors flex-shrink-0
+                            ${answers[q.id] === opt.value ? 'border-brand-600' : 'border-slate-300 group-hover:border-brand-300'}`}>
+                            {answers[q.id] === opt.value && <div className="w-2.5 h-2.5 rounded-full bg-brand-600" />}
+                        </div>
                         <input
                           type="radio"
                           name={q.id}
                           value={opt.value}
                           checked={answers[q.id] === opt.value}
                           onChange={(e: React.ChangeEvent<HTMLInputElement>) => onAnswerChange(q.id, e.target.value, q.type)}
-                          className="w-5 h-5 text-blue-600 border-gray-300 focus:ring-blue-500 disabled:text-gray-400"
+                          className="sr-only"
                           required={q.required}
                           disabled={readOnly}
                         />
-                        <span className={`ml-3 text-base ${answers[q.id] === opt.value ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
+                        <span className={`text-base font-medium ${answers[q.id] === opt.value ? 'text-brand-900' : 'text-slate-600'}`}>
                           {getText(opt.label)}
                         </span>
                       </label>
@@ -227,37 +219,34 @@ export function SurveyForm({
 
                 {/* Multiple Choice */}
                 {q.type === 'multiple_choice' && (
-                  <div className="space-y-3 max-w-3xl">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-4xl">
                     {q.options?.map((opt) => {
                       const isChecked = (answers[q.id] as string[] || []).includes(opt.value);
                       return (
-                        <label key={opt.value} className={`flex items-center p-4 rounded-xl border cursor-pointer transition-all group
+                        <label key={opt.value} className={`relative flex items-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 group
                           ${isChecked
-                            ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500' 
-                            : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'}
+                            ? 'bg-brand-50/50 border-brand-500 shadow-sm' 
+                            : 'border-slate-100 hover:border-brand-200 hover:bg-slate-50'}
                           ${readOnly ? 'cursor-default opacity-80' : ''}`}
                         >
+                           <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center mr-4 transition-colors flex-shrink-0
+                            ${isChecked ? 'border-brand-600 bg-brand-600' : 'border-slate-300 group-hover:border-brand-300'}`}>
+                            {isChecked && <Check size={14} className="text-white" />}
+                        </div>
                           <input
                             type="checkbox"
                             value={opt.value}
                             checked={isChecked}
                             onChange={() => onAnswerChange(q.id, opt.value, q.type)}
-                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:text-gray-400"
+                            className="sr-only"
                             disabled={readOnly}
                           />
-                          <span className={`ml-3 text-base ${isChecked ? 'text-blue-900 font-medium' : 'text-gray-700'}`}>
+                          <span className={`text-base font-medium ${isChecked ? 'text-brand-900' : 'text-slate-600'}`}>
                             {getText(opt.label)}
                           </span>
                         </label>
                       );
                     })}
-                  </div>
-                )}
-
-                {/* Description (Informational Text) */}
-                {q.type === 'description' && (
-                  <div className="text-gray-600 leading-relaxed whitespace-pre-wrap text-base">
-                    {getText(q.default_value) || getText(q.placeholder)}
                   </div>
                 )}
               </div>
@@ -267,56 +256,68 @@ export function SurveyForm({
       </div>
 
       {/* Navigation Footer */}
-      <div className="flex items-center justify-between gap-2 md:gap-4 pt-6 pb-12">
-        <button
-          type="button"
-          onClick={handlePrev}
-          disabled={currentStep === 0}
-          className={`flex-1 flex items-center justify-center px-2 md:px-6 py-3 rounded-xl font-medium transition-all
-            ${currentStep === 0 
-              ? 'text-gray-300 cursor-not-allowed' 
-              : 'text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 shadow-sm hover:shadow'}`}
-        >
-          <ChevronLeft size={20} className="mr-1 md:mr-2" />
-          <span className="hidden sm:inline">Previous</span>
-          <span className="inline sm:hidden">Prev</span>
-        </button>
-
-        {!readOnly && onSave && (
-          <button
-            type="button"
-            onClick={onSave}
-            className="flex-1 flex items-center justify-center px-2 md:px-6 py-3 rounded-xl font-medium text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100 shadow-sm transition-all hover:shadow-md active:scale-95"
-          >
-            <Save size={20} className="mr-1 md:mr-2" />
-            <span className="hidden sm:inline">Save Progress</span>
-            <span className="inline sm:hidden">Save</span>
-          </button>
-        )}
-
-        {currentStep < totalSteps - 1 ? (
-          <button
-            type="button"
-            onClick={handleNext}
-            className="flex-1 flex items-center justify-center px-2 md:px-8 py-3 bg-blue-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl hover:bg-blue-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <span className="hidden sm:inline">Next Section</span>
-            <span className="inline sm:hidden">Next</span>
-            <ChevronRight size={20} className="ml-1 md:ml-2" />
-          </button>
-        ) : (
-          !readOnly && (
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-slate-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-50 md:static md:bg-transparent md:border-none md:shadow-none md:p-0 md:pt-8 md:mt-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
             <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center px-2 md:px-8 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            type="button"
+            onClick={handlePrev}
+            disabled={currentStep === 0}
+            className={`flex-1 md:flex-none flex items-center justify-center px-6 py-4 rounded-2xl font-bold transition-all
+                ${currentStep === 0 
+                ? 'text-slate-300 cursor-not-allowed' 
+                : 'text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:shadow-md active:scale-95'}`}
             >
-              <span className="hidden sm:inline">{isSubmitting ? 'Submitting...' : 'Submit Survey'}</span>
-              <span className="inline sm:hidden">{isSubmitting ? 'Sending...' : 'Submit'}</span>
-              <Check size={20} className="ml-1 md:ml-2" />
+            <ChevronLeft size={20} className="mr-2" />
+            <span className="hidden sm:inline">Previous Step</span>
+            <span className="inline sm:hidden">Prev</span>
             </button>
-          )
-        )}
+
+            <div className="flex gap-4 flex-1 md:flex-none justify-end">
+                {!readOnly && onSave && (
+                <button
+                    type="button"
+                    onClick={onSave}
+                    className="flex items-center justify-center px-6 py-4 rounded-2xl font-bold text-brand-700 bg-brand-50 border border-brand-200 hover:bg-brand-100 hover:shadow-md transition-all active:scale-95"
+                    title="Save Progress"
+                >
+                    <Save size={20} className="md:mr-2" />
+                    <span className="hidden md:inline">Save</span>
+                </button>
+                )}
+
+                {currentStep < totalSteps - 1 ? (
+                <button
+                    type="button"
+                    onClick={handleNext}
+                    className="flex-1 md:flex-none flex items-center justify-center px-8 py-4 bg-brand-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-brand-500/30 hover:bg-brand-700 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-95 min-w-[140px]"
+                >
+                    <span className="hidden sm:inline">Next Step</span>
+                    <span className="inline sm:hidden">Next</span>
+                    <ChevronRight size={20} className="ml-2" />
+                </button>
+                ) : (
+                !readOnly && (
+                    <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="flex-1 md:flex-none flex items-center justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-green-500/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed min-w-[140px]"
+                    >
+                    {isSubmitting ? (
+                        <>
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
+                            <span>Sending...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>Submit Survey</span>
+                            <Check size={20} className="ml-2" />
+                        </>
+                    )}
+                    </button>
+                )
+                )}
+            </div>
+        </div>
       </div>
     </form>
   );
