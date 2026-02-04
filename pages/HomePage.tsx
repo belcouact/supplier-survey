@@ -4,7 +4,7 @@ import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
 import { getUserRole } from '../services/userService';
 import { SurveyResult, SurveyTemplate } from '../types';
-import { ClipboardList, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Clock, ArrowRight, CheckCircle2, LayoutGrid, List as ListIcon } from 'lucide-react';
 
 interface HomePageProps {
   user: any;
@@ -15,6 +15,7 @@ export function HomePage({ user }: HomePageProps) {
   const [availableSurveys, setAvailableSurveys] = useState<SurveyTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [surveyIdInput, setSurveyIdInput] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -61,6 +62,116 @@ export function HomePage({ user }: HomePageProps) {
   const handleCardClick = (survey: SurveyTemplate) => {
     const id = survey.short_id || survey.id;
     navigate(`/${id}`);
+  };
+
+  const renderSurveyList = (surveys: SurveyTemplate[], isParticipated: boolean) => {
+    if (viewMode === 'grid') {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {surveys.map((survey, idx) => {
+            const expired = isExpired(survey.expiration_date);
+            return (
+              <div 
+                key={survey.id}
+                onClick={() => handleCardClick(survey)}
+                className="group bg-white rounded-3xl shadow-soft border border-slate-100 p-8 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-brand-200 relative overflow-hidden"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+              >
+                <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-bold rounded-bl-2xl ${
+                  expired 
+                    ? 'bg-red-50 text-red-600' 
+                    : isParticipated ? 'bg-brand-50 text-brand-600' : 'bg-emerald-50 text-emerald-600'
+                }`}>
+                  {expired ? 'EXPIRED' : isParticipated ? 'PARTICIPATED' : 'ACTIVE'}
+                </div>
+
+                <div className="mb-6">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-colors ${
+                      isParticipated ? 'bg-green-50 group-hover:bg-green-100' : 'bg-brand-50 group-hover:bg-brand-100'
+                  }`}>
+                      {isParticipated ? (
+                          <CheckCircle2 className="w-6 h-6 text-green-600" />
+                      ) : (
+                          <ClipboardList className="w-6 h-6 text-brand-600" />
+                      )}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-brand-700 transition-colors">
+                    {getText(survey.title)}
+                  </h3>
+                  <p className="text-slate-500 text-sm line-clamp-3 leading-relaxed">
+                    {getText(survey.description)}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between pt-6 border-t border-slate-50">
+                  <div className="flex items-center text-xs text-slate-400 font-medium">
+                    <Clock className="w-3.5 h-3.5 mr-1.5" />
+                    <span>{expired ? (isParticipated ? 'Review Only' : 'Closed') : (isParticipated ? 'Update Response' : 'Open for submissions')}</span>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-all">
+                      <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-col gap-4">
+            {surveys.map((survey, idx) => {
+            const expired = isExpired(survey.expiration_date);
+            return (
+                <div 
+                key={survey.id}
+                onClick={() => handleCardClick(survey)}
+                className="group bg-white rounded-2xl shadow-sm border border-slate-100 p-6 cursor-pointer transition-all duration-300 hover:shadow-md hover:border-brand-200 flex items-center gap-6"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+                >
+                    <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center transition-colors ${
+                        isParticipated ? 'bg-green-50 group-hover:bg-green-100' : 'bg-brand-50 group-hover:bg-brand-100'
+                    }`}>
+                        {isParticipated ? (
+                            <CheckCircle2 className="w-6 h-6 text-green-600" />
+                        ) : (
+                            <ClipboardList className="w-6 h-6 text-brand-600" />
+                        )}
+                    </div>
+
+                    <div className="flex-grow min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                            <h3 className="text-lg font-bold text-slate-900 truncate group-hover:text-brand-700 transition-colors">
+                                {getText(survey.title)}
+                            </h3>
+                            <div className={`px-2.5 py-0.5 text-[10px] font-bold rounded-full ${
+                                expired 
+                                    ? 'bg-red-50 text-red-600' 
+                                    : isParticipated ? 'bg-brand-50 text-brand-600' : 'bg-emerald-50 text-emerald-600'
+                                }`}>
+                                {expired ? 'EXPIRED' : isParticipated ? 'PARTICIPATED' : 'ACTIVE'}
+                            </div>
+                        </div>
+                        <p className="text-slate-500 text-sm truncate">
+                            {getText(survey.description)}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-6 shrink-0">
+                        <div className="flex items-center text-xs text-slate-400 font-medium">
+                            <Clock className="w-3.5 h-3.5 mr-1.5" />
+                            <span>{expired ? (isParticipated ? 'Review Only' : 'Closed') : (isParticipated ? 'Update Response' : 'Open')}</span>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-all">
+                            <ArrowRight className="w-4 h-4" />
+                        </div>
+                    </div>
+                </div>
+            );
+            })}
+        </div>
+      );
+    }
   };
 
   if (!user) {
@@ -117,6 +228,23 @@ export function HomePage({ user }: HomePageProps) {
           <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Survey participation</h2>
           <p className="text-slate-500 mt-2 text-lg">Manage and track your survey participation.</p>
         </div>
+        
+        <div className="flex bg-slate-100 p-1 rounded-xl">
+            <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                title="Grid View"
+            >
+                <LayoutGrid size={20} />
+            </button>
+            <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-white text-brand-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                title="List View"
+            >
+                <ListIcon size={20} />
+            </button>
+        </div>
       </div>
       
       {loading ? (
@@ -141,95 +269,13 @@ export function HomePage({ user }: HomePageProps) {
                 <h3 className="text-2xl font-bold text-slate-800">Available Surveys</h3>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {availableSurveys.map((survey, idx) => {
-                  const expired = isExpired(survey.expiration_date);
-                  return (
-                    <div 
-                      key={survey.id}
-                      onClick={() => handleCardClick(survey)}
-                      className="group bg-white rounded-3xl shadow-soft border border-slate-100 p-8 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-brand-200 relative overflow-hidden"
-                      style={{ animationDelay: `${idx * 0.1}s` }}
-                    >
-                      <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-bold rounded-bl-2xl ${
-                        expired 
-                          ? 'bg-red-50 text-red-600' 
-                          : 'bg-emerald-50 text-emerald-600'
-                      }`}>
-                        {expired ? 'EXPIRED' : 'ACTIVE'}
-                      </div>
-
-                      <div className="mb-6">
-                        <div className="w-12 h-12 bg-brand-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-brand-100 transition-colors">
-                            <ClipboardList className="w-6 h-6 text-brand-600" />
-                        </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-brand-700 transition-colors">
-                          {getText(survey.title)}
-                        </h3>
-                        <p className="text-slate-500 text-sm line-clamp-3 leading-relaxed">
-                          {getText(survey.description)}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                        <div className="flex items-center text-xs text-slate-400 font-medium">
-                          <Clock className="w-3.5 h-3.5 mr-1.5" />
-                          <span>{expired ? 'Closed' : 'Open for submissions'}</span>
-                        </div>
-                        <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-all">
-                            <ArrowRight className="w-4 h-4" />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              {renderSurveyList(availableSurveys, false)}
             </div>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 animate-slide-up">
-          {participatedSurveys.map((survey, idx) => {
-            const expired = isExpired(survey.expiration_date);
-            return (
-              <div 
-                key={survey.id}
-                onClick={() => handleCardClick(survey)}
-                className="group bg-white rounded-3xl shadow-soft border border-slate-100 p-8 cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-brand-200 relative overflow-hidden"
-                style={{ animationDelay: `${idx * 0.1}s` }}
-              >
-                 <div className={`absolute top-0 right-0 px-4 py-2 text-xs font-bold rounded-bl-2xl ${
-                  expired 
-                    ? 'bg-red-50 text-red-600' 
-                    : 'bg-brand-50 text-brand-600'
-                }`}>
-                  {expired ? 'EXPIRED' : 'PARTICIPATED'}
-                </div>
-
-                <div className="mb-6">
-                   <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-4">
-                      <CheckCircle2 className="w-6 h-6 text-green-600" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 leading-tight group-hover:text-brand-700 transition-colors">
-                    {getText(survey.title)}
-                  </h3>
-                  <p className="text-slate-500 text-sm line-clamp-3 leading-relaxed">
-                    {getText(survey.description)}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-6 border-t border-slate-50">
-                  <div className="flex items-center text-xs text-slate-400 font-medium">
-                    <Clock className="w-3.5 h-3.5 mr-1.5" />
-                    <span>{expired ? 'Review Only' : 'Update Response'}</span>
-                  </div>
-                   <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-brand-600 group-hover:text-white transition-all">
-                      <ArrowRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="animate-slide-up">
+            {renderSurveyList(participatedSurveys, true)}
         </div>
       )}
     </div>

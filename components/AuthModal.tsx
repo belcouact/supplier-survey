@@ -13,6 +13,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState(defaultEmail || '');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('common_user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +44,9 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
           onClose();
         }
       } else {
+        if (password !== confirmPassword) {
+            throw new Error("Passwords do not match");
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -126,6 +130,23 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
                 />
             </div>
           </div>
+
+          {!isLogin && (
+          <div className="space-y-1">
+            <label className="block text-sm font-bold text-slate-700 ml-1">Confirm Password</label>
+            <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all outline-none font-medium"
+                placeholder="••••••••"
+                />
+            </div>
+          </div>
+          )}
 
           {!isLogin && (
             <div className="space-y-1">

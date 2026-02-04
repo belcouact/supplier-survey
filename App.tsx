@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { AuthModal } from './components/AuthModal';
+import { ChangePasswordModal } from './components/ChangePasswordModal';
 import { AdminPage } from './pages/AdminPage';
 import { SurveyPage } from './pages/SurveyPage';
 import { HomePage } from './pages/HomePage';
@@ -12,6 +13,7 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [defaultAuthEmail, setDefaultAuthEmail] = useState('');
 
   // --- Auth Listener ---
@@ -88,6 +90,7 @@ export default function App() {
           isAdmin={isAdmin}
           onOpenAuth={handleOpenAuth}
           onLogout={handleLogout}
+          onChangePassword={() => setIsChangePasswordOpen(true)}
         />
 
         <AuthModal 
@@ -95,6 +98,11 @@ export default function App() {
           onClose={() => setIsAuthOpen(false)}
           onLoginSuccess={handleLoginSuccess}
           defaultEmail={defaultAuthEmail}
+        />
+
+        <ChangePasswordModal 
+          isOpen={isChangePasswordOpen} 
+          onClose={() => setIsChangePasswordOpen(false)} 
         />
 
         <div className="flex-grow pt-20">

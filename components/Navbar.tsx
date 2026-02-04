@@ -6,9 +6,10 @@ interface NavbarProps {
   isAdmin: boolean;
   onOpenAuth: () => void;
   onLogout: () => void;
+  onChangePassword?: () => void;
 }
 
-export function Navbar({ user, isAdmin, onOpenAuth, onLogout }: NavbarProps) {
+export function Navbar({ user, isAdmin, onOpenAuth, onLogout, onChangePassword }: NavbarProps) {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,16 +24,6 @@ export function Navbar({ user, isAdmin, onOpenAuth, onLogout }: NavbarProps) {
           
           <div className="flex items-center space-x-2 md:space-x-6">
             
-            {isAdmin && (
-              <Link 
-                to="/admin" 
-                className="text-slate-500 hover:text-brand-600 flex items-center gap-2 text-sm font-semibold transition-colors px-3 py-2 rounded-lg hover:bg-slate-50"
-              >
-                <Settings size={18} />
-                <span className="hidden sm:inline">Dashboard</span>
-              </Link>
-            )}
-
             {user && (
               <Link
                 to="/"
@@ -43,14 +34,28 @@ export function Navbar({ user, isAdmin, onOpenAuth, onLogout }: NavbarProps) {
               </Link>
             )}
 
+            {isAdmin && (
+              <Link 
+                to="/admin" 
+                className="text-slate-500 hover:text-brand-600 flex items-center gap-2 text-sm font-semibold transition-colors px-3 py-2 rounded-lg hover:bg-slate-50"
+              >
+                <Settings size={18} />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+            )}
+
             {user ? (
               <div className="flex items-center gap-4 pl-4 border-l border-slate-200">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                <button 
+                  onClick={onChangePassword}
+                  className="flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-brand-600 transition-colors"
+                  title="Change Password"
+                >
                   <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-100 flex items-center justify-center text-brand-600">
                     <User size={16} />
                   </div>
                   <span className="hidden md:inline">{user.email}</span>
-                </div>
+                </button>
                 <button
                   onClick={onLogout}
                   className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
