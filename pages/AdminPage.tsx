@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { generateSurvey, refineSurvey, getAvailableModels, analyzeSurveyResults, chatWithSurveyResults } from '../services/aiService';
 import { saveSurveyTemplate, getTemplates, deleteTemplate, duplicateTemplate, updateSurveyTemplate } from '../services/templateService';
-import { getSurveyResultsByTemplate } from '../services/resultService';
+import { getSurveyResultsByTemplate, deleteSurveyResult } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser, getUserRole } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole, ActivityLog } from '../types';
@@ -165,6 +165,19 @@ export function AdminPage({ user }: AdminPageProps) {
         alert('Failed to analyze results');
     } finally {
         setIsAnalyzing(false);
+    }
+  };
+
+  const handleDeleteResult = async (resultId: string | number) => {
+    const idStr = String(resultId);
+    if (window.confirm('Are you sure you want to delete this survey record? This action cannot be undone.')) {
+        try {
+            await deleteSurveyResult(idStr);
+            setAnalyticsResults(analyticsResults.filter(r => String(r.id) !== idStr));
+        } catch (err) {
+            console.error(err);
+            alert('Failed to delete survey record');
+        }
     }
   };
 
@@ -951,12 +964,19 @@ export function AdminPage({ user }: AdminPageProps) {
                                                     <td className="px-6 py-3 text-gray-500">
                                                         {new Date(result.updated_at).toLocaleString()}
                                                     </td>
-                                                    <td className="px-6 py-3">
+                                                    <td className="px-6 py-3 flex items-center gap-4">
                                                         <button 
                                                             onClick={() => setViewingResult(result)}
                                                             className="text-blue-600 hover:underline"
                                                         >
                                                             View Details
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => result.id && handleDeleteResult(result.id)}
+                                                            className="text-red-600 hover:underline flex items-center gap-1"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                            Delete
                                                         </button>
                                                     </td>
                                                     <td className="px-6 py-3">
@@ -1748,8 +1768,8 @@ export function AdminPage({ user }: AdminPageProps) {
 
         {/* Preview Template Modal */}
         {previewTemplate && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] overflow-hidden flex flex-col relative">
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
+                <div className="bg-white w-full h-full overflow-hidden flex flex-col relative">
                     <div className="flex items-center justify-between p-4 border-b">
                         <h2 className="text-xl font-bold text-gray-900">Preview: {previewTemplate.title}</h2>
                         <button 

@@ -119,6 +119,15 @@ export async function getUserResults(userId: string): Promise<SurveyResult[]> {
   return data as SurveyResult[];
 }
 
+export async function deleteSurveyResult(resultId: string) {
+    const { error } = await supabase
+        .from(TABLE_NAME)
+        .delete()
+        .eq('id', resultId);
+
+    if (error) throw error;
+}
+
 /**
  * SQL Schema for Reference:
  * 

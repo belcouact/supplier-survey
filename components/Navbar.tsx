@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogIn, LogOut, Settings } from 'lucide-react';
+import { User, LogIn, LogOut, Settings, Home } from 'lucide-react';
 
 interface NavbarProps {
   user: any;
@@ -30,6 +30,16 @@ export function Navbar({ user, isAdmin, onOpenAuth, onLogout }: NavbarProps) {
               >
                 <Settings size={18} />
                 <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+            )}
+
+            {user && (
+              <Link
+                to="/"
+                className="text-slate-500 hover:text-brand-600 flex items-center gap-2 text-sm font-semibold transition-colors px-3 py-2 rounded-lg hover:bg-slate-50"
+              >
+                <Home size={18} />
+                <span className="hidden sm:inline">Home</span>
               </Link>
             )}
 
