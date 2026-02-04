@@ -37,8 +37,10 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
 
     try {
       if (isReset) {
+        // Construct the full URL to the app root (handles subdirectories like /apps/survey-gen/)
+        const redirectUrl = window.location.origin + import.meta.env.BASE_URL;
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
+          redirectTo: redirectUrl,
         });
         if (error) throw error;
         setResetSent(true);
