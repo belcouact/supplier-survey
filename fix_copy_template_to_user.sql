@@ -1,6 +1,9 @@
 -- Fix the copy_template_to_user function to ensure it copies ONLY to the target user.
 -- This function bypasses RLS to allow Super Admins to copy templates to other users.
 
+-- Drop the function first to allow return type changes
+DROP FUNCTION IF EXISTS copy_template_to_user(text, text, jsonb, text, timestamp with time zone, uuid);
+
 CREATE OR REPLACE FUNCTION copy_template_to_user(
     new_title TEXT,
     new_description TEXT,
