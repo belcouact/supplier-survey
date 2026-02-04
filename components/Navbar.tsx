@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { User, LogIn, LogOut, Settings, Sparkles } from 'lucide-react';
+import { User, LogIn, LogOut, Settings } from 'lucide-react';
 
 interface NavbarProps {
   user: any;
@@ -15,9 +15,6 @@ export function Navbar({ user, isAdmin, onOpenAuth, onLogout }: NavbarProps) {
         <div className="flex justify-between h-20 items-center">
           <div className="flex items-center gap-2">
             <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
-              <div className="w-10 h-10 bg-gradient-to-br from-brand-500 to-primary-600 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:shadow-brand-500/30 transition-all group-hover:scale-105">
-                <Sparkles size={20} fill="currentColor" className="text-white" />
-              </div>
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">
                 Survey AI
               </span>

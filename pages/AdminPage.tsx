@@ -6,7 +6,7 @@ import { getSurveyResultsByTemplate } from '../services/resultService';
 import { getAllUsers, updateUserRole, deleteUser, getUserRole } from '../services/userService';
 import { exportSurveyResultsToCSV } from '../utils/helpers';
 import { SurveySchema, SurveyQuestion, ChatMessage, SurveyResult, SurveyTemplate, UserProfile, UserRole, ActivityLog } from '../types';
-import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity, PieChart } from 'lucide-react';
+import { ArrowLeft, Save, Undo, Plus, Trash2, Edit2, MessageSquare, Check, X, Copy, Share2, Sparkles, Download, Brain, Activity, PieChart, UserPlus } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { getActivityLogs, deleteActivityLog } from '../services/activityLogService';
 import { StatisticsModal } from '../components/StatisticsModal';
@@ -28,6 +28,8 @@ export function AdminPage({ user }: AdminPageProps) {
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [showAIModal, setShowAIModal] = useState(false);
   const [shareSurvey, setShareSurvey] = useState<SurveyTemplate | null>(null);
+  const [copyToUserModal, setCopyToUserModal] = useState<{ isOpen: boolean; template: SurveyTemplate | null }>({ isOpen: false, template: null });
+  const [isCopyingToUser, setIsCopyingToUser] = useState(false);
 
   // --- Analysis State ---
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -104,6 +106,29 @@ export function AdminPage({ user }: AdminPageProps) {
             console.error(err);
         }
     }
+  };
+
+  const handleOpenCopyModal = async (e: React.MouseEvent, template: SurveyTemplate) => {
+      e.stopPropagation();
+      setCopyToUserModal({ isOpen: true, template });
+      if (users.length === 0) {
+          await loadUsers();
+      }
+  };
+
+  const handleExecuteCopy = async (targetUserId: string) => {
+      if (!copyToUserModal.template) return;
+      setIsCopyingToUser(true);
+      try {
+          await duplicateTemplate(copyToUserModal.template, targetUserId);
+          alert(`Template copied to user successfully!`);
+          setCopyToUserModal({ isOpen: false, template: null });
+      } catch (err) {
+          alert('Failed to copy template to user');
+          console.error(err);
+      } finally {
+          setIsCopyingToUser(false);
+      }
   };
 
   const handleAnalyzeResults = async (specificResult?: SurveyResult) => {
@@ -730,6 +755,15 @@ export function AdminPage({ user }: AdminPageProps) {
                         >
                             <Copy size={18} />
                         </button>
+                        {isSuperAdmin && (
+                            <button 
+                                onClick={(e) => handleOpenCopyModal(e, template)}
+                                className="p-2 text-gray-400 hover:text-green-500 hover:bg-green-50 rounded-full transition-colors"
+                                title="Copy to User"
+                            >
+                                <UserPlus size={18} />
+                            </button>
+                        )}
                         <button 
                             onClick={(e) => handleDeleteTemplate(e, String(template.id))}
                             className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
@@ -1077,6 +1111,58 @@ export function AdminPage({ user }: AdminPageProps) {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Copy to User Modal */}
+            {copyToUserModal.isOpen && copyToUserModal.template && (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+                        <button 
+                            onClick={() => setCopyToUserModal({ isOpen: false, template: null })}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >
+                            <X size={24} />
+                        </button>
+                        
+                        <h2 className="text-xl font-bold text-gray-900 mb-1">Copy Template to User</h2>
+                        <p className="text-sm text-gray-500 mb-6">Select a user to copy <strong>{copyToUserModal.template.title}</strong> to.</p>
+                        
+                        {isLoadingUsers ? (
+                            <div className="text-center py-8 text-gray-400">Loading users...</div>
+                        ) : (
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                                {users.map(u => (
+                                    <button
+                                        key={u.id}
+                                        onClick={() => handleExecuteCopy(u.id)}
+                                        disabled={isCopyingToUser}
+                                        className="w-full p-3 text-left border rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-between group"
+                                    >
+                                        <div>
+                                            <p className="font-medium text-gray-900">{u.email}</p>
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                u.role === 'super_admin' ? 'bg-purple-100 text-purple-700' :
+                                                u.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                                                'bg-gray-100 text-gray-600'
+                                            }`}>
+                                                {u.role === 'super_admin' ? 'Super Admin' : 
+                                                 u.role === 'admin' ? 'Admin' : 'Common User'}
+                                            </span>
+                                        </div>
+                                        {isCopyingToUser ? (
+                                             <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                                        ) : (
+                                            <ArrowLeft className="w-5 h-5 text-gray-300 group-hover:text-blue-500 rotate-180 transition-colors" />
+                                        )}
+                                    </button>
+                                ))}
+                                {users.length === 0 && (
+                                    <p className="text-center text-gray-500">No users found.</p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             )}

@@ -68,7 +68,7 @@ export function HomePage({ user }: HomePageProps) {
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
         
         <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-8 animate-fade-in">
-          <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay">
+          <h1 className="text-3xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay whitespace-nowrap">
             Survey powered by <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
           </h1>
           
