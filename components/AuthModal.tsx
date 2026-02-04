@@ -11,17 +11,20 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: AuthModalProps) {
   const [isLogin, setIsLogin] = useState(true);
+  const [isReset, setIsReset] = useState(false);
   const [email, setEmail] = useState(defaultEmail || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('common_user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetSent, setResetSent] = useState(false);
 
   React.useEffect(() => {
     if (defaultEmail) {
         setEmail(defaultEmail);
-        setIsLogin(true); // Usually if we pre-fill, we want login
+        setIsLogin(true);
+        setIsReset(false);
     }
   }, [defaultEmail]);
 
@@ -33,7 +36,13 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
     setError(null);
 
     try {
-      if (isLogin) {
+      if (isReset) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setResetSent(true);
+      } else if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -58,11 +67,8 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
         });
         if (error) throw error;
         if (data.user) {
-          // If auto-confirm is on, we can log them in. Otherwise, tell them to check email.
-          // For this demo, we'll assume they can proceed or show a message.
-          // Email sending is handled by Supabase settings, not client code.
           alert('Registration successful!');
-          onLoginSuccess(data.user); // Optimistic login for demo flow if allowed
+          onLoginSuccess(data.user);
           onClose();
         }
       }
@@ -70,6 +76,21 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
       setError(err.message || 'An error occurred');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleMode = (mode: 'login' | 'signup' | 'reset') => {
+    setError(null);
+    setResetSent(false);
+    if (mode === 'reset') {
+        setIsReset(true);
+        setIsLogin(true);
+    } else if (mode === 'login') {
+        setIsReset(false);
+        setIsLogin(true);
+    } else {
+        setIsReset(false);
+        setIsLogin(false);
     }
   };
 
@@ -88,10 +109,12 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
 
         <div className="text-center mb-8 mt-2">
             <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
+                {isReset ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Create Account')}
             </h2>
             <p className="text-slate-500 mt-2">
-                {isLogin ? 'Enter your credentials to access your account' : 'Join us to start creating surveys'}
+                {isReset 
+                    ? 'Enter your email to receive reset instructions' 
+                    : (isLogin ? 'Enter your credentials to access your account' : 'Join us to start creating surveys')}
             </p>
         </div>
 
@@ -101,6 +124,18 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
           </div>
         )}
 
+        {resetSent ? (
+            <div className="bg-green-50 text-green-600 px-4 py-6 rounded-xl mb-6 text-center border border-green-100">
+                <p className="font-bold mb-2">Check your email</p>
+                <p className="text-sm">We've sent password reset instructions to <strong>{email}</strong></p>
+                <button 
+                    onClick={() => toggleMode('login')}
+                    className="mt-4 text-brand-600 font-bold hover:underline"
+                >
+                    Back to Sign In
+                </button>
+            </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-1">
             <label className="block text-sm font-bold text-slate-700 ml-1">Email</label>
@@ -117,8 +152,20 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
             </div>
           </div>
           
+          {!isReset && (
           <div className="space-y-1">
-            <label className="block text-sm font-bold text-slate-700 ml-1">Password</label>
+            <div className="flex justify-between items-center ml-1">
+                <label className="block text-sm font-bold text-slate-700">Password</label>
+                {isLogin && (
+                    <button 
+                        type="button"
+                        onClick={() => toggleMode('reset')}
+                        className="text-xs font-medium text-brand-600 hover:text-brand-700 hover:underline"
+                    >
+                        Forgot password?
+                    </button>
+                )}
+            </div>
             <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input
@@ -131,8 +178,9 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
                 />
             </div>
           </div>
+          )}
 
-          {!isLogin && (
+          {!isLogin && !isReset && (
           <div className="space-y-1">
             <label className="block text-sm font-bold text-slate-700 ml-1">Confirm Password</label>
             <div className="relative">
@@ -149,7 +197,7 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
           </div>
           )}
 
-          {!isLogin && (
+          {!isLogin && !isReset && (
             <div className="space-y-1">
               <label className="block text-sm font-bold text-slate-700 ml-1">Role</label>
               <div className="relative">
@@ -175,21 +223,24 @@ export function AuthModal({ isOpen, onClose, onLoginSuccess, defaultEmail }: Aut
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     Processing...
                 </span>
-            ) : (isLogin ? 'Sign In' : 'Create Account')}
+            ) : (isReset ? 'Send Instructions' : (isLogin ? 'Sign In' : 'Create Account'))}
           </button>
         </form>
+        )}
 
+        {!resetSent && (
         <div className="mt-8 text-center">
           <p className="text-slate-500 text-sm">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-brand-600 font-bold hover:text-brand-700 hover:underline transition-colors"
-            >
-                {isLogin ? 'Sign Up' : 'Log In'}
-            </button>
+            {isReset 
+                ? <button onClick={() => toggleMode('login')} className="text-brand-600 font-bold hover:underline">Back to Sign In</button>
+                : (isLogin 
+                    ? <>Don't have an account? <button onClick={() => toggleMode('signup')} className="text-brand-600 font-bold hover:underline">Sign Up</button></>
+                    : <>Already have an account? <button onClick={() => toggleMode('login')} className="text-brand-600 font-bold hover:underline">Log In</button></>
+                  )
+            }
           </p>
         </div>
+        )}
       </div>
     </div>
   );

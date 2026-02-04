@@ -34,9 +34,13 @@ export default function App() {
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       checkAdminStatus(session?.user);
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsChangePasswordOpen(true);
+      }
     });
 
     return () => subscription.unsubscribe();
