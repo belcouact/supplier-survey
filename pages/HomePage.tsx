@@ -62,7 +62,7 @@ export function HomePage({ user }: HomePageProps) {
 
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-80px)] p-6 relative overflow-hidden">
+      <div className="flex flex-col items-center justify-start pt-20 md:pt-32 min-h-[calc(100vh-80px)] p-6 relative overflow-hidden">
         {/* Decorative Background Elements */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow"></div>
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>

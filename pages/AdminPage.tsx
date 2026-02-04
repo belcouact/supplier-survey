@@ -809,7 +809,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                             title="View Statistics"
                                         >
                                             <PieChart size={16} />
-                                            Statistics
+                                            <span className="hidden md:inline">Statistics</span>
                                         </button>
                                         <button 
                                             onClick={() => setShowResultChat(true)}
@@ -818,7 +818,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                             title="Chat with AI about results"
                                         >
                                             <MessageSquare size={16} />
-                                            Chat with AI
+                                            <span className="hidden md:inline">Ask AI</span>
                                         </button>
                                         <button 
                                             onClick={() => {
@@ -831,7 +831,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                             title="Download results as CSV"
                                         >
                                             <Download size={16} />
-                                            Export CSV
+                                            <span className="hidden md:inline">Export CSV</span>
                                         </button>
                                     </div>
                                 </div>
@@ -839,7 +839,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                     <table className="w-full text-sm text-left">
                                         <thead className="bg-gray-50 text-gray-500 font-medium">
                                             <tr>
-                                                <th className="px-6 py-3">ID/Email</th>
+                                                <th className="px-6 py-3">Email</th>
                                                 <th className="px-6 py-3">Submit Date</th>
                                                 <th className="px-6 py-3">Actions</th>
                                                 <th className="px-6 py-3">Analysis</th>
