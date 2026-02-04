@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
+import { getUserRole } from '../services/userService';
 import { SurveyResult, SurveyTemplate } from '../types';
 import { ClipboardList, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 
@@ -26,13 +27,15 @@ export function HomePage({ user }: HomePageProps) {
     setLoading(true);
     try {
       const results = await getUserResults(user.id);
+      const role = await getUserRole(user.id);
       
-      const allTemplates = await getTemplates();
-      setAvailableSurveys(allTemplates);
+      const effectiveRole = role === 'super_admin' ? 'super_admin' : (role || 'common_user');
+      const allTemplates = await getTemplates(user.id, effectiveRole);
+      setAvailableSurveys(allTemplates || []);
 
       if (results.length > 0) {
         const participatedIds = new Set(results.map(r => String(r.template_id)));
-        const filtered = allTemplates.filter(t => participatedIds.has(String(t.id)) || participatedIds.has(String(t.short_id)));
+        const filtered = (allTemplates || []).filter(t => participatedIds.has(String(t.id)) || participatedIds.has(String(t.short_id)));
         setParticipatedSurveys(filtered);
       } else {
         setParticipatedSurveys([]);
@@ -111,7 +114,7 @@ export function HomePage({ user }: HomePageProps) {
     <div className="container mx-auto px-4 py-12 min-h-screen">
       <div className="flex items-center justify-between mb-10 animate-fade-in">
         <div>
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Dashboard</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">Survey participation</h2>
           <p className="text-slate-500 mt-2 text-lg">Manage and track your survey participation.</p>
         </div>
       </div>

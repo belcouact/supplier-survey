@@ -74,7 +74,7 @@ export function AdminPage({ user }: AdminPageProps) {
         loadActivityLogs();
     }
     if (activeTab === 'gallery') {
-        loadAllTemplates();
+        loadTemplates();
     }
   }, [activeTab, isSuperAdmin]);
 
@@ -839,7 +839,7 @@ export function AdminPage({ user }: AdminPageProps) {
                     <div className="text-center py-12 text-gray-400">Loading templates...</div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {allTemplates.map(template => (
+                        {templates.map(template => (
                             <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative flex flex-col h-full">
                                 <h3 className="text-xl font-bold text-gray-800 mb-2">{template.title}</h3>
                                 <p className="text-gray-500 text-sm mb-4 line-clamp-3 flex-1">{template.description}</p>
@@ -858,7 +858,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                 </button>
                             </div>
                         ))}
-                        {allTemplates.length === 0 && (
+                        {templates.length === 0 && (
                             <div className="col-span-full text-center py-12 text-gray-400">
                                 No templates found.
                             </div>
