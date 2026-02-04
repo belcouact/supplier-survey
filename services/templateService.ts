@@ -149,20 +149,46 @@ export async function duplicateTemplate(originalTemplate: any, userId: string) {
        }
   }
 
-  const { data, error } = await supabase
-    .from('templates')
-    .insert([
-      {
-        title: newSchema.title,
-        description: newSchema.description,
-        schema: newSchema,
-        short_id: shortId,
-        expiration_date: originalTemplate.expiration_date,
-        created_at: new Date().toISOString(),
-        created_by: userId,
-      },
-    ])
-    .select();
+  // Check if we are copying to another user (requires RPC to bypass RLS)
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const isCopyingToOtherUser = currentUser && currentUser.id !== userId;
+
+  let data, error;
+
+  if (isCopyingToOtherUser) {
+    const response = await supabase.rpc('copy_template_to_user', {
+      new_title: newSchema.title,
+      new_description: newSchema.description,
+      new_schema: newSchema,
+      new_short_id: shortId,
+      expiration_date: originalTemplate.expiration_date,
+      target_user_id: userId
+    });
+    
+    if (response.error) {
+      error = response.error;
+    } else {
+      data = [response.data]; // RPC returns single object, wrap in array to match insert response structure
+    }
+  } else {
+    const response = await supabase
+      .from('templates')
+      .insert([
+        {
+          title: newSchema.title,
+          description: newSchema.description,
+          schema: newSchema,
+          short_id: shortId,
+          expiration_date: originalTemplate.expiration_date,
+          created_at: new Date().toISOString(),
+          created_by: userId,
+        },
+      ])
+      .select();
+      
+    data = response.data;
+    error = response.error;
+  }
 
   if (error) {
     console.error('Error duplicating template:', error);
