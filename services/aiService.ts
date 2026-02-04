@@ -13,7 +13,9 @@ export async function getAvailableModels(): Promise<string[]> {
       throw new Error(`Failed to fetch models: ${response.status}`);
     }
     const data = await response.json();
-    return data.models || ['deepseek', 'gemini']; // Fallback
+    const allModels = data.models || ['deepseek', 'gemini'];
+    // Filter out kimi and glm models
+    return allModels.filter((m: string) => !m.toLowerCase().includes('kimi') && !m.toLowerCase().includes('glm'));
   } catch (error) {
     console.error('Error fetching models:', error);
     return ['deepseek', 'gemini']; // Fallback
