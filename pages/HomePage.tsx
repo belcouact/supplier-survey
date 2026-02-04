@@ -134,13 +134,13 @@ export function HomePage({ user }: HomePageProps) {
           </p>
 
           <div className="w-full max-w-md mx-auto mt-12 animate-slide-up-delay" style={{ animationDelay: '0.6s' }}>
-            <div className="glass-panel p-2 rounded-2xl shadow-2xl flex items-center gap-2 transform transition-all focus-within:scale-105 duration-300">
+            <div className="glass-panel p-1.5 rounded-2xl shadow-2xl flex items-center gap-2 transform transition-all focus-within:scale-105 duration-300">
               <input 
                   type="text" 
                   value={surveyIdInput}
                   onChange={(e) => setSurveyIdInput(e.target.value)}
                   placeholder="Enter Survey Code"
-                  className="flex-1 px-6 py-4 bg-transparent border-none text-lg text-slate-800 placeholder-slate-400 focus:ring-0 outline-none w-full"
+                  className="flex-1 px-5 py-3 bg-transparent border-none text-lg text-slate-800 placeholder-slate-400 focus:ring-0 outline-none w-full"
               />
               <button 
                   onClick={() => {
@@ -149,7 +149,7 @@ export function HomePage({ user }: HomePageProps) {
                       }
                   }}
                   disabled={!surveyIdInput.trim()}
-                  className="px-8 py-4 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-brand-500/30 flex items-center gap-2"
+                  className="px-6 py-3 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-brand-500/30 flex items-center gap-2"
               >
                   Start
                   <ArrowRight className="w-5 h-5" />
