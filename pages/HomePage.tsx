@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
 import { SurveyResult, SurveyTemplate } from '../types';
-import { ClipboardList, Clock, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ClipboardList, Clock, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface HomePageProps {
   user: any;
@@ -68,15 +68,8 @@ export function HomePage({ user }: HomePageProps) {
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
         
         <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-8 animate-fade-in">
-          <div className="inline-flex items-center justify-center p-3 bg-white rounded-2xl shadow-soft mb-4 animate-slide-up">
-            <div className="p-2 bg-brand-50 rounded-xl mr-3">
-              <Sparkles className="w-6 h-6 text-brand-600" />
-            </div>
-          </div>
-
           <h1 className="text-5xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay">
-            Survey powered by <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
+            Survey powered by <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
           </h1>
           
           <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>
