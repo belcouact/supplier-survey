@@ -124,16 +124,16 @@ export function HomePage({ user }: HomePageProps) {
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow"></div>
         <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
         
-        <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-8 animate-fade-in">
+        <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-12 animate-fade-in">
           <h1 className="text-3xl md:text-7xl font-extrabold text-slate-900 tracking-tight leading-tight animate-slide-up-delay whitespace-nowrap">
             Survey powered by <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-primary-600">AI</span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-relaxed animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>
+          <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-loose animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>
             Experience the future of data collection. Seamless, intelligent, and efficient.
           </p>
 
-          <div className="w-full max-w-md mx-auto mt-12 animate-slide-up-delay" style={{ animationDelay: '0.6s' }}>
+          <div className="w-full max-w-md mx-auto mt-16 animate-slide-up-delay" style={{ animationDelay: '0.6s' }}>
             <div className="glass-panel p-1.5 rounded-2xl shadow-2xl flex items-center gap-2 transform transition-all focus-within:scale-105 duration-300">
               <input 
                   type="text" 
@@ -155,7 +155,7 @@ export function HomePage({ user }: HomePageProps) {
                   <ArrowRight className="w-5 h-5" />
               </button>
             </div>
-            <p className="mt-4 text-sm text-slate-500 font-medium">
+            <p className="mt-6 text-sm text-slate-500 font-medium">
               Have a code? Enter it above to begin instantly.
             </p>
           </div>
