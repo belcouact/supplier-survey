@@ -32,7 +32,7 @@ export function AdminPage({ user }: AdminPageProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [shareSurvey, setShareSurvey] = useState<SurveyTemplate | null>(null);
   const [copyToUserModal, setCopyToUserModal] = useState<{ isOpen: boolean; template: SurveyTemplate | null }>({ isOpen: false, template: null });
-  const [isCopyingToUser, setIsCopyingToUser] = useState(false);
+  const [copyingToUserId, setCopyingToUserId] = useState<string | null>(null);
 
   // --- Analysis State ---
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -136,7 +136,7 @@ export function AdminPage({ user }: AdminPageProps) {
 
   const handleExecuteCopy = async (targetUserId: string) => {
       if (!copyToUserModal.template) return;
-      setIsCopyingToUser(true);
+      setCopyingToUserId(targetUserId);
       try {
           await duplicateTemplate(copyToUserModal.template, targetUserId);
           alert(`Template copied to user successfully!`);
@@ -145,7 +145,7 @@ export function AdminPage({ user }: AdminPageProps) {
           alert('Failed to copy template to user');
           console.error(err);
       } finally {
-          setIsCopyingToUser(false);
+          setCopyingToUserId(null);
       }
   };
 
@@ -726,7 +726,7 @@ export function AdminPage({ user }: AdminPageProps) {
                         : 'border-transparent text-gray-500 hover:text-gray-700'
                     }`}
                 >
-                    Templates Gallery
+                    Preview
                 </button>
                 <button
                     onClick={() => setActiveTab('analytics')}
@@ -758,7 +758,7 @@ export function AdminPage({ user }: AdminPageProps) {
                             : 'border-transparent text-gray-500 hover:text-gray-700'
                         }`}
                     >
-                        Activity Log
+                        Log
                     </button>
                     </>
                 )}
@@ -1218,7 +1218,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                     <button
                                         key={u.id}
                                         onClick={() => handleExecuteCopy(u.id)}
-                                        disabled={isCopyingToUser}
+                                        disabled={!!copyingToUserId}
                                         className="w-full p-3 text-left border rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-between group"
                                     >
                                         <div>
@@ -1232,7 +1232,7 @@ export function AdminPage({ user }: AdminPageProps) {
                                                  u.role === 'admin' ? 'Admin' : 'Common User'}
                                             </span>
                                         </div>
-                                        {isCopyingToUser ? (
+                                        {copyingToUserId === u.id ? (
                                              <div className="w-5 h-5 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                                         ) : (
                                             <ArrowLeft className="w-5 h-5 text-gray-300 group-hover:text-blue-500 rotate-180 transition-colors" />
