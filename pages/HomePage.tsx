@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { getUserResults } from '../services/resultService';
 import { getTemplates } from '../services/templateService';
 import { getUserRole } from '../services/userService';
@@ -129,22 +130,72 @@ export function HomePage({ user }: HomePageProps) {
     return (
       <div className="flex flex-col items-center justify-start pt-20 md:pt-24 min-h-[calc(100vh-80px)] p-6 relative overflow-hidden">
         {/* Decorative Background Elements */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow"></div>
-        <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse-slow" style={{ animationDelay: '1s' }}></div>
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.3, 0.2],
+          }}
+          transition={{ 
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut" 
+          }}
+          className="absolute top-1/4 left-1/4 w-96 h-96 bg-brand-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.3, 0.2],
+          }}
+          transition={{ 
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 4
+          }}
+          className="absolute top-1/3 right-1/4 w-96 h-96 bg-primary-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
+        />
         
-        <div className="w-full max-w-4xl mx-auto text-center z-10 space-y-12 animate-fade-in">
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight animate-slide-up-delay">
-            <span className="block text-slate-900 mb-2">The New Survey,</span>
-            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 pb-2">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="w-full max-w-4xl mx-auto text-center z-10 space-y-12"
+        >
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+            <motion.span 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.8 }}
+              className="block text-slate-900 mb-2"
+            >
+              The New Survey,
+            </motion.span>
+            <motion.span 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.8 }}
+              className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 pb-2"
+            >
               Powered by AI
-            </span>
+            </motion.span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-loose animate-slide-up-delay" style={{ animationDelay: '0.4s' }}>
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="text-xl md:text-2xl text-slate-600 max-w-2xl mx-auto leading-loose"
+          >
             Experience the future of data collection. Seamless, intelligent, and efficient.
-          </p>
+          </motion.p>
 
-          <div className="w-full max-w-md mx-auto mt-16 animate-slide-up-delay" style={{ animationDelay: '0.6s' }}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="w-full max-w-md mx-auto mt-16"
+          >
             <div className="glass-panel p-1.5 rounded-2xl shadow-2xl flex items-center gap-2 transform transition-all focus-within:scale-105 duration-300">
               <input 
                   type="text" 
@@ -169,8 +220,8 @@ export function HomePage({ user }: HomePageProps) {
             <p className="mt-6 text-sm text-slate-500 font-medium">
               Have a code? Enter it above to begin instantly.
             </p>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     );
   }
