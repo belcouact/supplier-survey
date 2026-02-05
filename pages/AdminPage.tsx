@@ -18,7 +18,7 @@ interface AdminPageProps {
 
 export function AdminPage({ user }: AdminPageProps) {
   // --- State ---
-  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users' | 'activity' | 'gallery'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'templates' | 'analytics' | 'users' | 'activity'>('create');
   const [userContext, setUserContext] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -75,9 +75,6 @@ export function AdminPage({ user }: AdminPageProps) {
     }
     if (activeTab === 'activity' && isSuperAdmin) {
         loadActivityLogs();
-    }
-    if (activeTab === 'gallery') {
-        loadTemplates();
     }
   }, [activeTab, isSuperAdmin]);
 
@@ -705,6 +702,13 @@ export function AdminPage({ user }: AdminPageProps) {
   const renderTemplateCard = (template: SurveyTemplate) => (
     <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative">
         <div className="absolute top-4 right-4 flex gap-1 z-10 bg-white/80 backdrop-blur-sm p-1 rounded-full shadow-sm">
+            <button
+                onClick={(e) => { e.stopPropagation(); setPreviewTemplate(template); }}
+                className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors"
+                title="Preview Survey"
+            >
+                <Eye size={18} />
+            </button>
             <button 
                 onClick={(e) => { e.stopPropagation(); setShareSurvey(template); }}
                 className="p-2 text-gray-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-full transition-colors"
@@ -763,26 +767,6 @@ export function AdminPage({ user }: AdminPageProps) {
     </div>
   );
 
-  const renderGalleryCard = (template: SurveyTemplate) => (
-    <div key={template.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow group relative flex flex-col h-full">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">{template.title}</h3>
-        <p className="text-gray-500 text-sm mb-4 line-clamp-3 flex-1">{template.description}</p>
-        <div className="flex items-center justify-between text-xs text-gray-400 mb-4">
-            <span>Created: {new Date(template.created_at).toLocaleDateString()}</span>
-            <span className={`px-2 py-1 rounded-full ${template.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                {template.is_active ? 'Active' : 'Inactive'}
-            </span>
-        </div>
-        <button
-            onClick={() => setPreviewTemplate(template)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
-        >
-            <Eye size={18} />
-            Preview
-        </button>
-    </div>
-  );
-
   return (
     <div className={`flex-1 px-4 md:px-8 pb-4 md:pb-8 pt-2 md:pt-4 overflow-y-auto font-sans ${isChatOpen ? 'mr-80 md:mr-96' : ''}`}>
       <div className="max-w-7xl mx-auto">
@@ -806,16 +790,6 @@ export function AdminPage({ user }: AdminPageProps) {
                     }`}
                 >
                     Create
-                </button>
-                <button
-                    onClick={() => setActiveTab('gallery')}
-                    className={`px-6 py-3 font-medium text-sm transition-colors border-b-2 flex-shrink-0 ${
-                        activeTab === 'gallery' 
-                        ? 'border-blue-600 text-blue-600' 
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                    Preview
                 </button>
                 <button
                     onClick={() => setActiveTab('analytics')}
@@ -891,48 +865,6 @@ export function AdminPage({ user }: AdminPageProps) {
                          </section>
                      )}
                   </div>
-                )
-            )}
-
-            {activeTab === 'gallery' && (
-                isLoadingTemplates ? (
-                    <div className="text-center py-12 text-gray-400">Loading templates...</div>
-                ) : (
-                    <div className="space-y-10">
-                        {templates.length === 0 ? (
-                            <div className="text-center py-12 text-gray-400">
-                                No templates found.
-                            </div>
-                        ) : (
-                            <>
-                                {/* My Templates Section */}
-                                {myTemplates.length > 0 && (
-                                    <section>
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <div className="h-6 w-1 bg-blue-500 rounded-full"></div>
-                                            <h3 className="text-lg font-bold text-gray-800">Created by me</h3>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {myTemplates.map(template => renderGalleryCard(template))}
-                                        </div>
-                                    </section>
-                                )}
-
-                                {/* Other Templates Section */}
-                                {otherTemplates.length > 0 && (
-                                    <section>
-                                        <div className="flex items-center gap-2 mb-4">
-                                            <div className="h-6 w-1 bg-purple-500 rounded-full"></div>
-                                            <h3 className="text-lg font-bold text-gray-800">Copied from others</h3>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                            {otherTemplates.map(template => renderGalleryCard(template))}
-                                        </div>
-                                    </section>
-                                )}
-                            </>
-                        )}
-                    </div>
                 )
             )}
 
